@@ -55,7 +55,7 @@ Return ONLY valid JSON matching this exact schema:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "mistralai/mistral-7b-instruct:free",
         max_tokens: 1024,
         messages: [
           { role: "system", content: systemPrompt },
@@ -67,7 +67,8 @@ Return ONLY valid JSON matching this exact schema:
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error?.message || `OpenRouter error: ${response.status}`);
+      const detail = data.error?.message || data.error?.code || JSON.stringify(data);
+      throw new Error(`OpenRouter error ${response.status}: ${detail}`);
     }
 
     const text = data.choices?.[0]?.message?.content;
