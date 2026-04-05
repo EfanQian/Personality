@@ -284,7 +284,9 @@ async function startAnalysis() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ responses: G.responses[G.secretPlayer] })
     });
-    var data = await res.json();
+    var text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) { throw new Error("Server error — check that OPENROUTER_API_KEY is set in Vercel environment variables"); }
     clearInterval(interval);
     if (!res.ok) throw new Error(data.error || "Analysis failed");
     G.profile = data.profile;
