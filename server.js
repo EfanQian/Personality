@@ -1,12 +1,15 @@
 const express = require("express");
-const Anthropic = require("@anthropic-ai/sdk");
+const OpenAI = require("openai");
 const path = require("path");
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const client = new OpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY,
+});
 
 // ─── Question Bank ────────────────────────────────────────────────────────────
 
@@ -376,12 +379,11 @@ Return ONLY valid JSON matching this exact schema:
 }`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-opus-4-6",
+    const completion = await client.chat.completions.create({
+      model: "meta-llama/llama-3.3-70b-instruct:free",
       max_tokens: 1024,
-      thinking: { type: "adaptive" },
-      system: systemPrompt,
       messages: [
+        { role: "system", content: systemPrompt },
         {
           role: "user",
           content: `Here are the quiz answers for the mystery player:\n\n${responseText}\n\nGenerate their personality profile.`,
@@ -389,12 +391,11 @@ Return ONLY valid JSON matching this exact schema:
       ],
     });
 
-    // Extract JSON from response
-    const textBlock = message.content.find((b) => b.type === "text");
-    if (!textBlock) throw new Error("No text in response");
+    const text = completion.choices[0]?.message?.content;
+    if (!text) throw new Error("No response from model");
 
-    const jsonMatch = textBlock.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found");
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response");
 
     gameState.profile = JSON.parse(jsonMatch[0]);
     gameState.phase = "guessing";
