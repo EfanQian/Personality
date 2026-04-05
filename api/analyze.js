@@ -55,7 +55,7 @@ Return ONLY valid JSON matching this exact schema:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mistralai/mistral-7b-instruct:free",
+        model: "qwen/qwen3-235b-a22b:free",
         max_tokens: 1024,
         messages: [
           { role: "system", content: systemPrompt },
