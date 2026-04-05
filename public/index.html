@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎭 Guess the Personality</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f1a;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 680px;
+      animation: fadeIn 0.4s ease;
+    }
+    .screen.active { display: block; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 16px;
+      padding: 36px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #c4b5fd;
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 20px;
+    }
+
+    p { color: #94a3b8; line-height: 1.6; margin-bottom: 12px; }
+
+    .subtitle {
+      font-size: 1rem;
+      color: #6366f1;
+      margin-bottom: 28px;
+      font-weight: 500;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0f0f1a;
+      border: 2px solid #2a2a4a;
+      border-radius: 10px;
+      color: #e8e8f0;
+      padding: 14px;
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 100px;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { outline: none; border-color: #6366f1; }
+
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s;
+      margin-top: 12px;
+    }
+    .btn:hover { transform: translateY(-2px); opacity: 0.92; }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-secondary {
+      background: #1e1e35;
+      border: 2px solid #2a2a4a;
+      color: #94a3b8;
+    }
+    .btn-secondary:hover { border-color: #6366f1; color: #c4b5fd; }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626, #9f1239);
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-card {
+      background: #0f0f1a;
+      border: 2px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .section-card:hover { border-color: #6366f1; }
+    .section-card.selected {
+      border-color: #6366f1;
+      background: #1a1a35;
+    }
+    .section-card .section-icon { font-size: 1.5rem; margin-bottom: 6px; }
+    .section-card .section-name { font-weight: 700; font-size: 0.95rem; color: #e8e8f0; }
+    .section-card .section-desc { font-size: 0.8rem; color: #6b7280; margin-top: 4px; }
+
+    .progress-bar-wrap {
+      background: #0f0f1a;
+      border-radius: 8px;
+      height: 6px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #8b5cf6);
+      border-radius: 8px;
+      transition: width 0.4s ease;
+    }
+
+    .question-text {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #e8e8f0;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .choices { display: flex; flex-direction: column; gap: 10px; }
+
+    .choice-btn {
+      background: #0f0f1a;
+      border: 2px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: #c4b5fd;
+      font-size: 0.95rem;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      line-height: 1.4;
+    }
+    .choice-btn:hover { border-color: #6366f1; background: #1a1a35; }
+    .choice-btn.selected {
+      border-color: #6366f1;
+      background: #1a1a35;
+      color: #e8e8f0;
+    }
+
+    .privacy-screen {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .privacy-screen .big-emoji { font-size: 4rem; margin-bottom: 12px; }
+    .privacy-screen .player-name-display {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #a78bfa;
+      margin-bottom: 8px;
+    }
+
+    .analyzing-wrap { text-align: center; padding: 20px 0; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #2a2a4a;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .profile-card {
+      background: #0f0f1a;
+      border: 2px solid #6366f1;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .nickname {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .vibe-tag {
+      display: inline-block;
+      background: #1a1a35;
+      border: 1px solid #4f46e5;
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.85rem;
+      color: #a78bfa;
+      margin-bottom: 16px;
+    }
+
+    .traits-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .trait-tag {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.82rem;
+      color: #94a3b8;
+    }
+
+    .profile-section { margin-bottom: 14px; }
+    .profile-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6366f1;
+      margin-bottom: 4px;
+    }
+    .profile-value { color: #e8e8f0; font-size: 0.95rem; line-height: 1.5; }
+
+    .hints-list { list-style: none; }
+    .hints-list li {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      padding: 6px 0;
+      border-bottom: 1px solid #1e1e35;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .hints-list li:last-child { border-bottom: none; }
+    .hints-list li::before { content: "💡"; font-size: 0.8rem; flex-shrink: 0; }
+
+    .players-guess-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 20px 0;
+    }
+
+    .player-guess-btn {
+      background: #0f0f1a;
+      border: 2px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 14px 20px;
+      color: #e8e8f0;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+    .player-guess-btn:hover { border-color: #6366f1; background: #1a1a35; color: #a78bfa; }
+
+    .reveal-banner {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #1a1a35, #1a1535);
+      border: 2px solid #6366f1;
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }
+    .reveal-emoji { font-size: 3rem; margin-bottom: 8px; }
+    .reveal-name {
+      font-size: 2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .info-box {
+      background: #0f0f1a;
+      border: 1px solid #2a2a4a;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      color: #94a3b8;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .counter {
+      font-size: 0.85rem;
+      color: #6366f1;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #2a2a4a;
+      margin: 20px 0;
+    }
+
+    @media (max-width: 480px) {
+      .section-grid { grid-template-columns: 1fr; }
+      .card { padding: 24px 20px; }
+      h1 { font-size: 1.7rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── SCREEN 1: SETUP ─────────────────────────────────────────────────────── -->
+<div class="screen active" id="screen-setup">
+  <div class="card">
+    <h1>🎭 Guess the Personality</h1>
+    <p class="subtitle">The party game where your friends think they know you.</p>
+
+    <h2>Who's playing tonight?</h2>
+    <p>Enter player names — one per line or separated by commas.</p>
+    <br>
+    <textarea id="player-input" placeholder="Alex&#10;Jordan&#10;Sam&#10;Riley&#10;Chris" rows="5"></textarea>
+
+    <div class="info-box" style="margin-top: 16px;">
+      📋 <strong>How it works:</strong> Everyone answers the same questions privately.
+      I'll secretly pick one player, build their personality profile, and the group has to guess who it is.
+    </div>
+
+    <button class="btn" onclick="setupPlayers()">Let's Go →</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 2: SECTIONS ──────────────────────────────────────────────────── -->
+<div class="screen" id="screen-sections">
+  <div class="card">
+    <h2>🗂️ Choose Your Sections</h2>
+    <h3>Pick <strong>2 to 4</strong> categories for this round</h3>
+
+    <div class="section-grid" id="section-grid"></div>
+
+    <div id="section-counter" class="counter">0 / 4 selected</div>
+    <button class="btn" onclick="confirmSections()" id="sections-btn" disabled>
+      Lock It In →
+    </button>
+  </div>
+</div>
+
+<!-- ── SCREEN 3: PRIVACY GATE ─────────────────────────────────────────────── -->
+<div class="screen" id="screen-privacy">
+  <div class="card privacy-screen">
+    <div class="big-emoji">🙈</div>
+    <div class="player-name-display" id="privacy-name"></div>
+    <p>It's your turn! Make sure nobody else can see your screen.</p>
+    <br>
+    <p style="font-size: 0.85rem; color: #4f46e5;">Pass the device to <strong id="privacy-name-2" style="color: #a78bfa;"></strong> now.</p>
+    <br>
+    <button class="btn" onclick="startAnswering()">I'm Ready — Show My Questions</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 4: QUESTIONS ─────────────────────────────────────────────────── -->
+<div class="screen" id="screen-questions">
+  <div class="card">
+    <div class="counter" id="q-counter">Question 1 of 10</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="q-progress" style="width: 0%"></div>
+    </div>
+
+    <div class="question-text" id="q-text"></div>
+    <div class="choices" id="q-choices"></div>
+
+    <br>
+    <button class="btn" onclick="nextQuestion()" id="q-next-btn" disabled>Next →</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 5: DONE (all answered) ──────────────────────────────────────── -->
+<div class="screen" id="screen-done">
+  <div class="card analyzing-wrap">
+    <div class="big-emoji" style="font-size:3rem; margin-bottom: 12px;">✅</div>
+    <h2>Everyone's answered!</h2>
+    <p>All <span id="done-count"></span> players have submitted their responses.</p>
+    <br>
+    <p style="color: #6366f1;">Ready to reveal the mystery personality?</p>
+    <br>
+    <button class="btn" onclick="startAnalysis()">🔮 Analyze the Mystery Player</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 6: ANALYZING ─────────────────────────────────────────────────── -->
+<div class="screen" id="screen-analyzing">
+  <div class="card analyzing-wrap">
+    <div class="spinner"></div>
+    <h2>Analyzing responses...</h2>
+    <p id="analyzing-msg">Scanning personality patterns...</p>
+  </div>
+</div>
+
+<!-- ── SCREEN 7: GUESSING ──────────────────────────────────────────────────── -->
+<div class="screen" id="screen-guessing">
+  <div class="card">
+    <h2>🕵️ Who is this person?</h2>
+    <p>Read the profile below — then guess who you think it is!</p>
+
+    <div class="divider"></div>
+
+    <div class="profile-card" id="profile-display"></div>
+
+    <div class="divider"></div>
+
+    <h3>The players are...</h3>
+    <div class="players-guess-list" id="player-guess-list"></div>
+
+    <br>
+    <button class="btn btn-danger" onclick="revealAnswer()">🎯 Reveal the Answer!</button>
+  </div>
+</div>
+
+<!-- ── SCREEN 8: REVEAL ────────────────────────────────────────────────────── -->
+<div class="screen" id="screen-reveal">
+  <div class="card">
+    <h2>🎊 The answer is...</h2>
+
+    <div class="reveal-banner">
+      <div class="reveal-emoji">🌟</div>
+      <div class="reveal-name" id="reveal-name"></div>
+    </div>
+
+    <div class="profile-card" id="reveal-profile"></div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="playAgain()">🔄 Another Round</button>
+      <button class="btn btn-secondary" onclick="newGame()">🏠 New Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCRIPT ──────────────────────────────────────────────────────────────── -->
+<script>
+  let state = {
+    players: [],
+    sections: [],
+    questions: [],
+    currentQ: 0,
+    currentPlayer: "",
+    currentPlayerIndex: 0,
+    answers: [],
+    selectedChoice: null,
+    allResponses: {},
+    profile: null,
+    players: []
+  };
+
+  const sectionMeta = {
+    "Personality & Decisions": { icon: "🧠", desc: "How you think & make choices" },
+    "Character Vibe":          { icon: "✨", desc: "Your archetype & energy" },
+    "Group Role":              { icon: "👥", desc: "Your role in any team" },
+    "Preferences":             { icon: "🎨", desc: "Colors, animals, aesthetic" },
+    "Bonus Fun":               { icon: "🎲", desc: "Random & chaotic questions" },
+  };
+
+  const analyzingMessages = [
+    "Scanning personality patterns...",
+    "Detecting chaos levels...",
+    "Consulting the vibes...",
+    "Mapping psychological terrain...",
+    "Calibrating the mystery-o-meter...",
+    "Almost there — assembling the profile...",
+  ];
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+  }
+
+  async function api(path, method = "GET", body = null) {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch("/api" + path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Request failed" }));
+      throw new Error(err.error || "Request failed");
+    }
+    return res.json();
+  }
+
+  function renderProfile(profile) {
+    return `
+      <div class="nickname">${profile.nickname}</div>
+      <div class="vibe-tag">✨ ${profile.characterVibe}</div>
+      <div class="traits-wrap">
+        ${profile.traits.map(t => `<span class="trait-tag">${t}</span>`).join("")}
+      </div>
+      <div class="profile-section">
+        <div class="profile-label">Who they are</div>
+        <div class="profile-value">${profile.description}</div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-label">Group role</div>
+        <div class="profile-value">${profile.groupRole}</div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-label">Subtle hints</div>
+        <ul class="hints-list">
+          ${profile.hints.map(h => `<li>${h}</li>`).join("")}
+        </ul>
+      </div>
+    `;
+  }
+
+  // ── Step 1: Setup ──────────────────────────────────────────────────────────
+
+  async function setupPlayers() {
+    const raw = document.getElementById("player-input").value;
+    const players = raw
+      .split(/[\n,]+/)
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    if (players.length < 2) {
+      alert("Add at least 2 players!");
+      return;
+    }
+
+    try {
+      await api("/setup", "POST", { players });
+      state.players = players;
+      loadSections();
+      show("screen-sections");
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // ── Step 2: Sections ───────────────────────────────────────────────────────
+
+  async function loadSections() {
+    const { sections } = await api("/sections-list");
+    const grid = document.getElementById("section-grid");
+    grid.innerHTML = "";
+    state.sections = [];
+
+    sections.forEach(name => {
+      const meta = sectionMeta[name] || { icon: "📋", desc: "" };
+      const card = document.createElement("div");
+      card.className = "section-card";
+      card.innerHTML = `
+        <div class="section-icon">${meta.icon}</div>
+        <div class="section-name">${name}</div>
+        <div class="section-desc">${meta.desc}</div>
+      `;
+      card.addEventListener("click", () => toggleSection(card, name));
+      grid.appendChild(card);
+    });
+  }
+
+  function toggleSection(card, name) {
+    const idx = state.sections.indexOf(name);
+    if (idx > -1) {
+      state.sections.splice(idx, 1);
+      card.classList.remove("selected");
+    } else {
+      if (state.sections.length >= 4) {
+        alert("Maximum 4 sections!");
+        return;
+      }
+      state.sections.push(name);
+      card.classList.add("selected");
+    }
+    const n = state.sections.length;
+    document.getElementById("section-counter").textContent = `${n} / 4 selected`;
+    document.getElementById("sections-btn").disabled = n < 2;
+  }
+
+  async function confirmSections() {
+    try {
+      const { questionCount } = await api("/sections", "POST", { sections: state.sections });
+      const { questions } = await api("/questions");
+      state.questions = questions;
+      state.currentPlayerIndex = 0;
+      showPrivacyScreen();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // ── Step 3: Privacy Gate ───────────────────────────────────────────────────
+
+  function showPrivacyScreen() {
+    const name = state.players[state.currentPlayerIndex];
+    state.currentPlayer = name;
+    state.answers = [];
+    state.currentQ = 0;
+    state.selectedChoice = null;
+
+    document.getElementById("privacy-name").textContent = name;
+    document.getElementById("privacy-name-2").textContent = name;
+    show("screen-privacy");
+  }
+
+  function startAnswering() {
+    state.currentQ = 0;
+    state.answers = [];
+    state.selectedChoice = null;
+    renderQuestion();
+    show("screen-questions");
+  }
+
+  // ── Step 4: Questions ──────────────────────────────────────────────────────
+
+  function renderQuestion() {
+    const q = state.questions[state.currentQ];
+    const total = state.questions.length;
+    const progress = ((state.currentQ) / total) * 100;
+
+    document.getElementById("q-counter").textContent =
+      `Question ${state.currentQ + 1} of ${total}  ·  ${state.currentPlayer}`;
+    document.getElementById("q-progress").style.width = progress + "%";
+    document.getElementById("q-text").textContent = q.text;
+
+    const choicesEl = document.getElementById("q-choices");
+    choicesEl.innerHTML = "";
+    q.choices.forEach((choice, i) => {
+      const btn = document.createElement("button");
+      btn.className = "choice-btn";
+      btn.textContent = choice;
+      btn.addEventListener("click", () => selectChoice(btn, choice, choicesEl));
+      choicesEl.appendChild(btn);
+    });
+
+    state.selectedChoice = null;
+    document.getElementById("q-next-btn").disabled = true;
+    document.getElementById("q-next-btn").textContent =
+      state.currentQ === total - 1 ? "Submit Answers ✓" : "Next →";
+  }
+
+  function selectChoice(btn, choice, container) {
+    container.querySelectorAll(".choice-btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+    state.selectedChoice = choice;
+    document.getElementById("q-next-btn").disabled = false;
+  }
+
+  async function nextQuestion() {
+    const q = state.questions[state.currentQ];
+    state.answers.push({
+      id: q.id,
+      text: q.text,
+      choice: state.selectedChoice,
+    });
+
+    state.currentQ++;
+
+    if (state.currentQ >= state.questions.length) {
+      // Submit this player's answers
+      try {
+        const { allDone } = await api("/answer", "POST", {
+          playerName: state.currentPlayer,
+          responses: state.answers,
+        });
+
+        state.currentPlayerIndex++;
+
+        if (allDone) {
+          document.getElementById("done-count").textContent = state.players.length;
+          show("screen-done");
+        } else {
+          showPrivacyScreen();
+        }
+      } catch (e) {
+        alert("Error submitting: " + e.message);
+      }
+    } else {
+      state.selectedChoice = null;
+      renderQuestion();
+    }
+  }
+
+  // ── Step 5: Analyze ────────────────────────────────────────────────────────
+
+  async function startAnalysis() {
+    show("screen-analyzing");
+
+    let msgIdx = 0;
+    const msgEl = document.getElementById("analyzing-msg");
+    const interval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % analyzingMessages.length;
+      msgEl.textContent = analyzingMessages[msgIdx];
+    }, 1800);
+
+    try {
+      await api("/analyze", "POST");
+      clearInterval(interval);
+
+      const { profile, players } = await api("/profile");
+      state.profile = profile;
+
+      // Render profile
+      document.getElementById("profile-display").innerHTML = renderProfile(profile);
+
+      // Render player list for guessing
+      const list = document.getElementById("player-guess-list");
+      list.innerHTML = "";
+      players.forEach(name => {
+        const btn = document.createElement("div");
+        btn.className = "player-guess-btn";
+        btn.textContent = `👤 ${name}`;
+        list.appendChild(btn);
+      });
+
+      show("screen-guessing");
+    } catch (e) {
+      clearInterval(interval);
+      alert("Analysis failed: " + e.message);
+      show("screen-done");
+    }
+  }
+
+  // ── Step 6: Reveal ─────────────────────────────────────────────────────────
+
+  async function revealAnswer() {
+    try {
+      const { secretPlayer, profile } = await api("/reveal", "POST");
+      document.getElementById("reveal-name").textContent = secretPlayer;
+      document.getElementById("reveal-profile").innerHTML = renderProfile(profile);
+      show("screen-reveal");
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  // ── Step 7: Play Again / New Game ──────────────────────────────────────────
+
+  async function playAgain() {
+    try {
+      await api("/play-again", "POST");
+      await loadSections();
+      show("screen-sections");
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  function newGame() {
+    window.location.reload();
+  }
+</script>
+</body>
+</html>
