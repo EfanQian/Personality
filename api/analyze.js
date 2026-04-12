@@ -30,16 +30,12 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing responses" });
   }
 
-  const responseText = responses
-    .map((r) => `Q: ${r.text}\nA: ${r.choice}`)
-    .join("\n\n");
+  const answers = responses.map((r) => `Q: ${r.text} / A: ${r.choice}`).join(" | ");
 
-  const userPrompt = `You are a party game host. A player answered these quiz questions:
+  const prompt = `Party game: guess the personality. Quiz answers: ${answers}
 
-${responseText}
-
-Create a fun personality profile. Reply with ONLY a JSON object, no other text, no markdown, no code fences. Use exactly this structure:
-{"nickname":"creative title","traits":["trait1","trait2","trait3","trait4"],"groupRole":"their role in 1-2 sentences","characterVibe":"archetype description","description":"This person... 2-3 funny sentences","hints":["subtle hint 1","subtle hint 2"]}`;
+Reply with ONLY a JSON object, no markdown, no explanation:
+{"nickname":"funny title","traits":["trait1","trait2","trait3"],"groupRole":"their role in 1 sentence","characterVibe":"one archetype word or phrase","description":"This person... one funny sentence.","hints":["hint1","hint2"]}`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -49,11 +45,9 @@ Create a fun personality profile. Reply with ONLY a JSON object, no other text, 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "nvidia/nemotron-3-nano-30b-a3b:free",
-        max_tokens: 1024,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
+        model: "liquid/lfm-2.5-1.2b-instruct:free",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
       }),
     });
 
@@ -67,12 +61,9 @@ Create a fun personality profile. Reply with ONLY a JSON object, no other text, 
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new Error("No response from model");
 
-    // Strip markdown code fences if present
     const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-
-    // Extract first JSON object found
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Model did not return JSON. Raw response: " + cleaned.slice(0, 200));
+    if (!jsonMatch) throw new Error("Model did not return JSON. Got: " + cleaned.slice(0, 200));
 
     const profile = JSON.parse(jsonMatch[0]);
     res.json({ profile });
