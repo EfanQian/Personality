@@ -12,21 +12,21 @@ async function readBody(req) {
 
 function parsePlainText(text) {
   const get = (key) => {
-    const match = text.match(new RegExp(key + ":\\s*(.+)", "i"));
+    const match = text.match(new RegExp("^" + key + ":\\s*(.+)", "im"));
     return match ? match[1].trim() : "";
   };
   const traitsRaw = get("TRAITS");
   const traits = traitsRaw ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean) : ["Mysterious", "Unpredictable", "Unique"];
   return {
-    nickname:      get("NICKNAME") || "The Mystery",
+    nickname:      get("NICKNAME")   || "The Mystery",
     traits,
-    groupRole:     get("ROLE")     || "The wildcard of the group",
-    characterVibe: get("VIBE")     || "Enigmatic",
-    description:   get("ABOUT")   || "This person defies easy categorization.",
-    hints: [
-      get("HINT1") || "Hard to pin down",
-      get("HINT2") || "Full of surprises",
-    ].filter(Boolean),
+    groupRole:     get("ROLE")       || "The wildcard of the group",
+    characterVibe: get("VIBE")       || "Enigmatic",
+    description:   get("ABOUT")      || "This person defies easy categorization.",
+    superpower:    get("SUPERPOWER") || "",
+    weakness:      get("WEAKNESS")   || "",
+    motto:         get("MOTTO")      || "",
+    hints: [get("HINT1"), get("HINT2")].filter(Boolean),
   };
 }
 
@@ -51,19 +51,23 @@ module.exports = async (req, res) => {
 
   const answers = responses.map((r) => `- ${r.text}: ${r.choice}`).join("\n");
 
-  const prompt = `You are a fun party game host. Based on these quiz answers, create a personality profile.
+  const prompt = `You are a witty party game host creating a personality profile from quiz answers. Be creative, specific, and funny — base everything on the actual answers given.
 
 Quiz answers:
 ${answers}
 
-Reply using EXACTLY this format with no extra text:
-NICKNAME: [a funny creative title]
-TRAITS: [trait1, trait2, trait3]
-ROLE: [their role in a group in one sentence]
-VIBE: [one archetype word or short phrase]
-ABOUT: [one funny sentence starting with "This person"]
-HINT1: [a subtle clue about this person]
-HINT2: [another clue about their habits]`;
+Fill in this profile using the exact format below. Do not copy the examples — write something original based on the answers above.
+
+NICKNAME: The Overthinker's Nightmare  (example — write a different original title)
+TRAITS: loyal, chaotic, secretly judging everyone  (example — write traits that match the answers)
+ROLE: The one who arrives late but somehow fixes everything  (example)
+VIBE: Chaotic Good  (example — could be an archetype, alignment, or vibe)
+ABOUT: This person has a 47-tab browser and calls it organized.  (example — write a specific funny observation)
+SUPERPOWER: Can read a room better than anyone but will never admit it
+WEAKNESS: Absolutely cannot make a decision without a pros and cons list
+MOTTO: Why do it now when you can do it better in 10 minutes?
+HINT1: Their texts are either one word or an essay, no in-between
+HINT2: Has a very specific way of doing things and notices when you do it wrong`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -74,7 +78,7 @@ HINT2: [another clue about their habits]`;
       },
       body: JSON.stringify({
         model: "nvidia/nemotron-3-nano-30b-a3b:free",
-        max_tokens: 400,
+        max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       }),
     });
