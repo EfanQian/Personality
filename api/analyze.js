@@ -10,35 +10,24 @@ async function readBody(req) {
   });
 }
 
-// Attempt to close truncated JSON so it can be parsed
-function repairJson(str) {
-  // Remove trailing comma before closing
-  str = str.replace(/,\s*$/, "");
-
-  // Close any unclosed string (odd number of unescaped quotes)
-  let inString = false;
-  let escaped = false;
-  for (let i = 0; i < str.length; i++) {
-    if (escaped) { escaped = false; continue; }
-    if (str[i] === "\\") { escaped = true; continue; }
-    if (str[i] === '"') inString = !inString;
-  }
-  if (inString) str += '"';
-
-  // Close open arrays and objects
-  const stack = [];
-  inString = false; escaped = false;
-  for (let i = 0; i < str.length; i++) {
-    if (escaped) { escaped = false; continue; }
-    if (str[i] === "\\") { escaped = true; continue; }
-    if (str[i] === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (str[i] === "{") stack.push("}");
-    else if (str[i] === "[") stack.push("]");
-    else if (str[i] === "}" || str[i] === "]") stack.pop();
-  }
-  str += stack.reverse().join("");
-  return str;
+function parsePlainText(text) {
+  const get = (key) => {
+    const match = text.match(new RegExp(key + ":\\s*(.+)", "i"));
+    return match ? match[1].trim() : "";
+  };
+  const traitsRaw = get("TRAITS");
+  const traits = traitsRaw ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean) : ["Mysterious", "Unpredictable", "Unique"];
+  return {
+    nickname:      get("NICKNAME") || "The Mystery",
+    traits,
+    groupRole:     get("ROLE")     || "The wildcard of the group",
+    characterVibe: get("VIBE")     || "Enigmatic",
+    description:   get("ABOUT")   || "This person defies easy categorization.",
+    hints: [
+      get("HINT1") || "Hard to pin down",
+      get("HINT2") || "Full of surprises",
+    ].filter(Boolean),
+  };
 }
 
 module.exports = async (req, res) => {
@@ -56,17 +45,25 @@ module.exports = async (req, res) => {
 
   const body = await readBody(req);
   const { responses } = body;
-
   if (!responses || !Array.isArray(responses)) {
     return res.status(400).json({ error: "Missing responses" });
   }
 
-  const answers = responses.map((r) => `Q: ${r.text} / A: ${r.choice}`).join(" | ");
+  const answers = responses.map((r) => `- ${r.text}: ${r.choice}`).join("\n");
 
-  const prompt = `Party game. Quiz answers: ${answers}
+  const prompt = `You are a fun party game host. Based on these quiz answers, create a personality profile.
 
-Reply with ONLY this JSON, nothing else:
-{"nickname":"funny title","traits":["a","b","c"],"groupRole":"1 sentence","characterVibe":"archetype","description":"This person... 1 sentence.","hints":["hint1","hint2"]}`;
+Quiz answers:
+${answers}
+
+Reply using EXACTLY this format with no extra text:
+NICKNAME: [a funny creative title]
+TRAITS: [trait1, trait2, trait3]
+ROLE: [their role in a group in one sentence]
+VIBE: [one archetype word or short phrase]
+ABOUT: [one funny sentence starting with "This person"]
+HINT1: [a subtle clue about this person]
+HINT2: [another clue about their habits]`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -77,7 +74,7 @@ Reply with ONLY this JSON, nothing else:
       },
       body: JSON.stringify({
         model: "liquid/lfm-2.5-1.2b-instruct:free",
-        max_tokens: 400,
+        max_tokens: 300,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -92,26 +89,7 @@ Reply with ONLY this JSON, nothing else:
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new Error("No response from model");
 
-    const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-
-    // Extract JSON object
-    const start = cleaned.indexOf("{");
-    if (start === -1) throw new Error("Model did not return JSON. Got: " + cleaned.slice(0, 200));
-    let jsonStr = cleaned.slice(start);
-
-    // Try to parse, then try to repair if truncated
-    let profile;
-    try {
-      profile = JSON.parse(jsonStr);
-    } catch (e) {
-      const repaired = repairJson(jsonStr);
-      try {
-        profile = JSON.parse(repaired);
-      } catch (e2) {
-        throw new Error("Could not parse model response. Got: " + jsonStr.slice(0, 200));
-      }
-    }
-
+    const profile = parsePlainText(text);
     res.json({ profile });
   } catch (err) {
     console.error("Analysis error:", err.message);
