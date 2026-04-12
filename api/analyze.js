@@ -71,33 +71,43 @@ function parsePlainText(text) {
 }
 
 function isBadOutput(profile) {
-  const bad = ["funny title","placeholder","[","your answer","fill in","example","nickname here","trait here"];
+  const bad = ["funny title","placeholder","[","your answer","fill in","example","nickname here","trait here","human crash","crash test","dummy"];
   const nick = (profile.nickname || "").toLowerCase();
   return !profile.nickname || bad.some(b => nick.includes(b));
 }
 
 async function callModel(apiKey, answers, attempt) {
-  const exampleProfile =
-    "NICKNAME: The Human Crash Test Dummy\n" +
-    "TRAITS: impulsive, fearless, contagiously energetic, oddly reliable\n" +
-    "ROLE: The one who suggests the bad idea that somehow becomes the best night of everyone's year\n" +
-    "VIBE: Controlled Chaos\n" +
-    "ABOUT: This person has seventeen stories that all start with 'I probably should not have done that but...'\n" +
-    "DEEPDIVE: They move at a speed that makes everyone around them nervous and somehow still arrive at the right answer. There is no plan B because plan A always works, or at minimum produces a better story than plan B ever would have. The group runs on their energy the way a car runs on gasoline — remove it and everything stalls.\n" +
-    "SUPERPOWER: Can make absolutely any situation fun within five minutes flat\n" +
-    "WEAKNESS: Patience is a concept they are aware of but personally unacquainted with\n" +
-    "MOTTO: Worst case we have a good story\n" +
-    "HINT1: Their texts read like stream of consciousness but always somehow get to the point\n" +
-    "HINT2: Shows up late to everything but always at exactly the right moment\n" +
-    "HINT3: Has strong, detailed opinions about things you would never think to have opinions about";
+  // Unique seed per call to prevent OpenRouter response caching
+  const seed = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+
+  const systemPrompt =
+    "You are a sharp, witty writer who creates one-of-a-kind personality profiles for a party game. " +
+    "You analyze quiz answers carefully and write a profile that is SPECIFIC to those answers — not generic. " +
+    "The NICKNAME must be a clever, funny, specific phrase based on what the person actually answered. " +
+    "NEVER write placeholder text. NEVER copy from examples. Every field must reflect the actual quiz answers. " +
+    "Respond ONLY with the profile in the exact format requested. [ref:" + seed + "]";
 
   const userMsg =
-    "A player answered these personality quiz questions:\n\n" + answers +
-    "\n\nHere is an example of a good personality profile (for a DIFFERENT person):\n\n" +
-    exampleProfile +
-    "\n\nNow write a profile for the player above. " +
-    (attempt > 1 ? "Be very creative with the nickname — make it specific and funny. " : "") +
-    "Use the same format. Every field must be filled with real content based on their answers:";
+    "Here are the quiz answers from one player. Read them carefully:\n\n" +
+    answers +
+    "\n\n" +
+    "Write a personality profile for this specific person. Use this exact format:\n\n" +
+    "NICKNAME: [A clever, funny 3-6 word title that reflects their specific answers — e.g. 'The Accidental Chaos Architect' or 'The One Who Planned This Six Months Ago']\n" +
+    "TRAITS: [5 traits separated by commas, based on their actual answers]\n" +
+    "ROLE: [Their specific dynamic in a group, one sentence]\n" +
+    "VIBE: [2-4 words capturing their energy]\n" +
+    "ABOUT: [2-3 sentences describing them based on their answers. Be specific and funny.]\n" +
+    "DEEPDIVE: [3-4 sentences going deeper — what drives them, how they actually operate, what people miss about them at first]\n" +
+    "SUPERPOWER: [One specific ability this person has, based on their answers]\n" +
+    "WEAKNESS: [One specific flaw, based on their answers]\n" +
+    "MOTTO: [A short phrase they would actually say]\n" +
+    "HINT1: [A specific clue about their behavior — one sentence]\n" +
+    "HINT2: [Another specific clue — one sentence]\n" +
+    "HINT3: [A third specific clue — one sentence]\n\n" +
+    (attempt > 1
+      ? "IMPORTANT: Make the NICKNAME extremely creative and specific. It must not be generic.\n\n"
+      : "") +
+    "Write the profile now:";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -105,14 +115,10 @@ async function callModel(apiKey, answers, attempt) {
     body: JSON.stringify({
       model: "google/gemma-4-31b-it:free",
       max_tokens: 2000,
-      temperature: attempt > 1 ? 1.1 : 0.9,
+      temperature: attempt > 1 ? 1.2 : 1.0,
       messages: [
-        {
-          role: "system",
-          content: "You write sharp, specific, funny personality profiles for a party game. You NEVER use placeholder text. Every field contains real creative content. You follow the format exactly."
-        },
-        { role: "user", content: userMsg },
-        { role: "assistant", content: "NICKNAME: " }
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: userMsg },
       ],
     }),
   });
@@ -141,24 +147,20 @@ module.exports = async (req, res) => {
   try {
     let profile = null;
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       const rawText = await callModel(apiKey, answers, attempt);
       const content = extractContent(rawText);
       if (!content) throw new Error("No content in response. Raw: " + rawText.slice(0, 200));
 
-      // The assistant prefix "NICKNAME: " means we need to prepend it back
-      const fullText = "NICKNAME: " + content;
-      const parsed = parsePlainText(fullText);
+      const parsed = parsePlainText(content);
 
       if (!isBadOutput(parsed)) {
         profile = parsed;
         break;
       }
-      // Bad output on first attempt — retry
-      if (attempt === 2) profile = parsed; // use whatever we got
+      if (attempt === 3) profile = parsed;
     }
 
-    // Apply defaults for any missing fields
     const final = {
       nickname:      profile.nickname      || "The Undeniable Force",
       traits:        profile.traits.length  ? profile.traits : ["Unique", "Complex", "Surprising"],
