@@ -15,6 +15,48 @@ function clean(s) {
   return s.replace(/[\x00-\x1F\x7F]/g, " ").replace(/"/g, "'").trim();
 }
 
+// Robust content extractor — handles truncated or malformed JSON from OpenRouter
+function extractContent(rawText) {
+  // Try proper parse first
+  try {
+    const d = JSON.parse(rawText);
+    if (d.error) throw new Error(d.error.message || d.error.code || "Provider error");
+    return d.choices?.[0]?.message?.content || null;
+  } catch (e) {
+    // If it's a provider error (not a parse error), rethrow it
+    if (!(e instanceof SyntaxError)) throw e;
+  }
+
+  // JSON was malformed — manually extract the content field character by character
+  const marker = '"content":';
+  const idx = rawText.lastIndexOf(marker);
+  if (idx === -1) return null;
+
+  let pos = idx + marker.length;
+  while (pos < rawText.length && rawText[pos] !== '"') pos++; // skip to opening quote
+  if (pos >= rawText.length) return null;
+  pos++; // skip opening quote
+
+  let out = "";
+  while (pos < rawText.length) {
+    const ch = rawText[pos];
+    if (ch === "\\") {
+      const nx = rawText[pos + 1];
+      if      (nx === "n")  { out += "\n"; pos += 2; }
+      else if (nx === "t")  { out += "\t"; pos += 2; }
+      else if (nx === '"')  { out += '"';  pos += 2; }
+      else if (nx === "\\") { out += "\\"; pos += 2; }
+      else                  { out += nx;   pos += 2; }
+    } else if (ch === '"') {
+      break; // end of string
+    } else {
+      out += ch;
+      pos++;
+    }
+  }
+  return out || null;
+}
+
 function parsePlainText(text) {
   const get = (key) => {
     const matches = [...text.matchAll(new RegExp("^" + key + ":\\s*(.+)", "gim"))];
@@ -50,11 +92,11 @@ ROLE: Shows up with the solution before the meeting even starts
 VIBE: Introverted Mastermind
 ABOUT: This person has a color-coded spreadsheet for things that definitely don't need spreadsheets.
 DEEPDIVE: Calm on the outside, this person has already run through every possible outcome and drafted a response for each one. They work best alone, deliver results that quietly make everyone else look underprepared, and find silence more comfortable than most people find conversation. There is a plan. There is always a plan.
-SUPERPOWER: Can research, plan, and execute something while others are still naming the group chat
+SUPERPOWER: Can research, plan, and execute something while everyone else is still naming the group chat
 WEAKNESS: Will silently redo your work if you did it even slightly differently than they would have
-MOTTO: If it's worth doing, it's worth a 12-tab browser and a backup plan
+MOTTO: If it is worth doing it is worth a 12-tab browser and a backup plan
 HINT1: Their camera roll is 90% screenshots of articles they will definitely read later
-HINT2: Replies to texts three days late, but the reply is three paragraphs
+HINT2: Replies to texts three days late but the reply is three paragraphs
 HINT3: Has a strong and well-reasoned opinion about the correct way to load a dishwasher`;
 
 module.exports = async (req, res) => {
@@ -86,7 +128,7 @@ module.exports = async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        model: "minimax/minimax-m2.5:free",
         max_tokens: 450,
         messages: [
           {
@@ -103,40 +145,19 @@ module.exports = async (req, res) => {
           },
           {
             role: "user",
-            content: `Now create a completely different profile for this new person's quiz answers:\n\n${answers}`
+            content: `Now create a completely different profile for this new person:\n\n${answers}`
           }
         ],
       }),
     });
 
-    // Read as text first — avoids crash if response is truncated
     const rawText = await response.text();
-
-    let modelText = "";
-    try {
-      const parsed = JSON.parse(rawText);
-      if (!parsed.error) {
-        modelText = parsed.choices?.[0]?.message?.content || "";
-      } else {
-        const detail = parsed.error?.message || parsed.error?.code || JSON.stringify(parsed.error);
-        throw new Error(`OpenRouter error ${response.status}: ${detail}`);
-      }
-    } catch (parseErr) {
-      // Response was truncated — try to salvage the content field via regex
-      const m = rawText.match(/"content"\s*:\s*"((?:[^"\\]|\\.)+)"/);
-      if (m) {
-        modelText = m[1].replace(/\\n/g, "\n").replace(/\\"/g, "'").replace(/\\\\/g, "\\");
-      } else {
-        throw new Error("Could not read model response (likely timeout). Try again.");
-      }
-    }
-
-    if (!modelText) throw new Error("Model returned no content");
+    const modelText = extractContent(rawText);
+    if (!modelText) throw new Error("Model returned no content. Raw: " + rawText.slice(0, 150));
 
     const profile = parsePlainText(modelText);
-    const safeStr = JSON.stringify({ profile });
     res.setHeader("Content-Type", "application/json");
-    res.end(safeStr);
+    res.end(JSON.stringify({ profile }));
   } catch (err) {
     console.error("Analysis error:", err.message);
     res.status(500).json({ error: "Analysis failed: " + err.message });
