@@ -16,14 +16,23 @@
     h3 { font-size: 1.1rem; font-weight: 600; color: #94a3b8; margin-bottom: 20px; }
     p { color: #94a3b8; line-height: 1.6; margin-bottom: 12px; }
     .subtitle { font-size: 1rem; color: #6366f1; margin-bottom: 28px; font-weight: 500; }
+    input[type=text] { width: 100%; background: #0f0f1a; border: 2px solid #2a2a4a; border-radius: 10px; color: #e8e8f0; padding: 14px; font-size: 1rem; font-family: inherit; }
+    input[type=text]:focus { outline: none; border-color: #6366f1; }
     textarea { width: 100%; background: #0f0f1a; border: 2px solid #2a2a4a; border-radius: 10px; color: #e8e8f0; padding: 14px; font-size: 1rem; font-family: inherit; resize: vertical; min-height: 100px; }
     textarea:focus { outline: none; border-color: #6366f1; }
     .btn { display: inline-block; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; border: none; border-radius: 10px; padding: 14px 28px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 0.15s,opacity 0.15s; margin-top: 12px; }
     .btn:hover { transform: translateY(-2px); opacity: 0.92; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     .btn-secondary { background: #1e1e35; border: 2px solid #2a2a4a; color: #94a3b8; }
+    .btn-solo { background: linear-gradient(135deg,#0891b2,#0e7490); }
     .btn-danger { background: linear-gradient(135deg,#dc2626,#9f1239); }
-    .btn-green { background: linear-gradient(135deg,#16a34a,#15803d); }
+    .mode-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+    .mode-card { flex: 1; min-width: 200px; background: #0f0f1a; border: 2px solid #2a2a4a; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: center; }
+    .mode-card:hover { border-color: #6366f1; background: #1a1a35; }
+    .mode-card.solo-card:hover { border-color: #0891b2; }
+    .mode-icon { font-size: 2rem; margin-bottom: 8px; }
+    .mode-title { font-weight: 700; font-size: 1rem; color: #e8e8f0; margin-bottom: 4px; }
+    .mode-desc { font-size: 0.8rem; color: #6b7280; }
     .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .section-card { background: #0f0f1a; border: 2px solid #2a2a4a; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; user-select: none; }
     .section-card:hover { border-color: #6366f1; }
@@ -44,6 +53,7 @@
     .analyzing-wrap { text-align: center; padding: 20px 0; }
     .spinner { width: 48px; height: 48px; border: 4px solid #2a2a4a; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .analyzing-timer { font-size: 0.8rem; color: #4b5563; margin-top: 8px; }
     .profile-card { background: #0f0f1a; border: 2px solid #6366f1; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
     .nickname { font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg,#a78bfa,#f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
     .vibe-tag { display: inline-block; background: #1a1a35; border: 1px solid #4f46e5; border-radius: 20px; padding: 4px 14px; font-size: 0.85rem; color: #a78bfa; margin-bottom: 16px; }
@@ -67,7 +77,7 @@
     .result-row.correct { border: 2px solid #22c55e; color: #86efac; }
     .result-row.wrong { border: 2px solid #374151; color: #6b7280; }
     .vote-arrow { color: #4b5563; font-size: 0.85rem; font-weight: 400; margin-left: auto; }
-    @media (max-width:480px) { .section-grid { grid-template-columns: 1fr; } .card { padding: 24px 20px; } h1 { font-size: 1.7rem; } }
+    @media (max-width:480px) { .section-grid { grid-template-columns: 1fr; } .card { padding: 24px 20px; } h1 { font-size: 1.7rem; } .mode-row { flex-direction: column; } }
   </style>
 </head>
 <body>
@@ -77,11 +87,47 @@
   <div class="card">
     <h1>🎭 Guess the Personality</h1>
     <p class="subtitle">The party game where your friends think they know you.</p>
-    <h2>Who's playing tonight?</h2>
+    <div class="mode-row">
+      <div class="mode-card" onclick="showGroupSetup()">
+        <div class="mode-icon">👥</div>
+        <div class="mode-title">Party Mode</div>
+        <div class="mode-desc">Everyone answers, group guesses who the AI analyzed</div>
+      </div>
+      <div class="mode-card solo-card" onclick="showSoloSetup()">
+        <div class="mode-icon">🪞</div>
+        <div class="mode-title">Solo Mode</div>
+        <div class="mode-desc">Answer questions alone and discover your personality</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GROUP SETUP -->
+<div class="screen" id="screen-group-setup">
+  <div class="card">
+    <h2>👥 Party Mode</h2>
+    <h3>Who's playing tonight?</h3>
     <p>Enter player names, one per line or separated by commas.</p><br>
     <textarea id="player-input" placeholder="Alex&#10;Jordan&#10;Sam&#10;Riley" rows="5"></textarea>
-    <div class="info-box" style="margin-top:16px;">📋 <strong>How it works:</strong> Everyone answers the same questions privately. I'll secretly pick one player, build their personality profile, and the group has to guess who it is.</div>
-    <button class="btn" onclick="setupPlayers()">Let's Go →</button>
+    <div class="info-box" style="margin-top:16px;">📋 Everyone answers the same questions privately. The AI secretly picks one player, builds their profile, and the group guesses who it is.</div>
+    <div class="btn-row">
+      <button class="btn" onclick="setupPlayers()">Let's Go →</button>
+      <button class="btn btn-secondary" onclick="show('screen-setup')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SOLO SETUP -->
+<div class="screen" id="screen-solo-setup">
+  <div class="card">
+    <h2>🪞 Solo Mode</h2>
+    <h3>What's your name?</h3>
+    <input type="text" id="solo-name-input" placeholder="Your name" style="margin-bottom:16px;" /><br>
+    <div class="info-box">✨ Answer a set of questions and the AI will build your unique personality profile.</div>
+    <div class="btn-row">
+      <button class="btn btn-solo" onclick="setupSolo()">Start →</button>
+      <button class="btn btn-secondary" onclick="show('screen-setup')">← Back</button>
+    </div>
   </div>
 </div>
 
@@ -118,7 +164,7 @@
   </div>
 </div>
 
-<!-- DONE (all answered) -->
+<!-- DONE (all answered, party mode) -->
 <div class="screen" id="screen-done">
   <div class="card analyzing-wrap">
     <div style="font-size:3rem;margin-bottom:12px;">✅</div>
@@ -133,12 +179,13 @@
 <div class="screen" id="screen-analyzing">
   <div class="card analyzing-wrap">
     <div class="spinner"></div>
-    <h2>Analyzing responses...</h2>
+    <h2 id="analyzing-title">Analyzing responses...</h2>
     <p id="analyzing-msg">Scanning personality patterns...</p>
+    <p class="analyzing-timer" id="analyzing-timer"></p>
   </div>
 </div>
 
-<!-- GUESSING (profile reveal + start voting) -->
+<!-- GUESSING (party mode — profile reveal + start voting) -->
 <div class="screen" id="screen-guessing">
   <div class="card">
     <h2>🕵️ Who is this person?</h2>
@@ -172,7 +219,19 @@
   </div>
 </div>
 
-<!-- REVEAL -->
+<!-- SOLO RESULT -->
+<div class="screen" id="screen-solo-result">
+  <div class="card">
+    <h2>🪞 Your Personality Profile</h2>
+    <div class="profile-card" id="solo-profile-display"></div>
+    <div class="btn-row">
+      <button class="btn btn-solo" onclick="soloPlayAgain()">🔄 Try Again</button>
+      <button class="btn btn-secondary" onclick="newGame()">🏠 Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- REVEAL (party mode) -->
 <div class="screen" id="screen-reveal">
   <div class="card">
     <h2>🎊 The mystery player was...</h2>
@@ -200,8 +259,18 @@ var sectionMeta = {
   "Preferences":             { icon: "🎨", desc: "Colors, animals, aesthetic" },
   "Bonus Fun":               { icon: "🎲", desc: "Random and chaotic questions" }
 };
-var analyzingMsgs = ["Scanning personality patterns...","Detecting chaos levels...","Consulting the vibes...","Mapping psychological terrain...","Calibrating the mystery-o-meter...","Almost there..."];
+var analyzingMsgs = [
+  "Scanning personality patterns...",
+  "Detecting chaos levels...",
+  "Consulting the vibes...",
+  "Mapping psychological terrain...",
+  "Calibrating the mystery-o-meter...",
+  "Cross-referencing quirks...",
+  "Decoding behavioral signatures...",
+  "Almost there..."
+];
 var G = {
+  soloMode: false,
   players:[], sections:[], questions:[], responses:{},
   currentPlayerIdx:0, currentQ:0, currentAnswers:[], selectedChoice:null,
   secretPlayer:null, profile:null, usedPlayers:[],
@@ -224,11 +293,23 @@ function renderProfile(p) {
     +(hints ? "<div class='profile-section'><div class='profile-label'>Hints</div><ul class='hints-list'>"+hints+"</ul></div>" : "");
 }
 
+// --- MODE SELECTION ---
+function showGroupSetup() { G.soloMode = false; show("screen-group-setup"); }
+function showSoloSetup()  { G.soloMode = true;  show("screen-solo-setup"); }
+
+// --- PARTY MODE SETUP ---
 async function setupPlayers() {
   var raw = document.getElementById("player-input").value;
   var players = raw.split(/[\n,]+/).map(function(p){ return p.trim(); }).filter(Boolean);
   if (players.length < 2) { alert("Add at least 2 players!"); return; }
   G.players = players;
+  await loadSectionsScreen();
+}
+
+// --- SOLO MODE SETUP ---
+async function setupSolo() {
+  var name = document.getElementById("solo-name-input").value.trim() || "You";
+  G.players = [name];
   await loadSectionsScreen();
 }
 
@@ -263,7 +344,13 @@ async function confirmSections() {
   G.questions = data.questions;
   G.responses = {};
   G.currentPlayerIdx = 0;
-  showPrivacy();
+  if (G.soloMode) {
+    // Solo: skip privacy screen, go straight to questions
+    G.currentQ = 0; G.currentAnswers = []; G.selectedChoice = null;
+    renderQuestion(); show("screen-questions");
+  } else {
+    showPrivacy();
+  }
 }
 
 function showPrivacy() {
@@ -279,7 +366,8 @@ function startAnswering() { renderQuestion(); show("screen-questions"); }
 function renderQuestion() {
   var q = G.questions[G.currentQ];
   var total = G.questions.length;
-  document.getElementById("q-counter").textContent = "Question " + (G.currentQ+1) + " of " + total + "  ·  " + G.players[G.currentPlayerIdx];
+  var label = G.soloMode ? "" : "  ·  " + G.players[G.currentPlayerIdx];
+  document.getElementById("q-counter").textContent = "Question " + (G.currentQ+1) + " of " + total + label;
   document.getElementById("q-progress").style.width = (G.currentQ / total * 100) + "%";
   document.getElementById("q-text").textContent = q.text;
   var el = document.getElementById("q-choices");
@@ -307,22 +395,41 @@ function nextQuestion() {
   if (G.currentQ >= G.questions.length) {
     G.responses[G.players[G.currentPlayerIdx]] = G.currentAnswers;
     G.currentPlayerIdx++;
-    if (G.currentPlayerIdx >= G.players.length) {
-      document.getElementById("done-count").textContent = G.players.length;
-      show("screen-done");
+    if (G.soloMode || G.currentPlayerIdx >= G.players.length) {
+      if (G.soloMode) {
+        G.secretPlayer = G.players[0];
+        startAnalysis();
+      } else {
+        document.getElementById("done-count").textContent = G.players.length;
+        show("screen-done");
+      }
     } else { showPrivacy(); }
   } else { G.selectedChoice = null; renderQuestion(); }
 }
 
+// --- ANALYSIS ---
 async function startAnalysis() {
-  var eligible = G.players.filter(function(p){ return G.usedPlayers.indexOf(p) === -1; });
-  var pool = eligible.length > 0 ? eligible : G.players;
-  G.secretPlayer = pool[Math.floor(Math.random() * pool.length)];
-  if (G.usedPlayers.indexOf(G.secretPlayer) === -1) G.usedPlayers.push(G.secretPlayer);
+  if (!G.soloMode) {
+    var eligible = G.players.filter(function(p){ return G.usedPlayers.indexOf(p) === -1; });
+    var pool = eligible.length > 0 ? eligible : G.players;
+    G.secretPlayer = pool[Math.floor(Math.random() * pool.length)];
+    if (G.usedPlayers.indexOf(G.secretPlayer) === -1) G.usedPlayers.push(G.secretPlayer);
+  }
+
+  document.getElementById("analyzing-title").textContent = G.soloMode ? "Building your profile..." : "Analyzing responses...";
   show("screen-analyzing");
+
   var i = 0;
+  var elapsed = 0;
   var msgEl = document.getElementById("analyzing-msg");
-  var interval = setInterval(function(){ i = (i+1) % analyzingMsgs.length; msgEl.textContent = analyzingMsgs[i]; }, 1200);
+  var timerEl = document.getElementById("analyzing-timer");
+  var interval = setInterval(function(){
+    i = (i+1) % analyzingMsgs.length;
+    msgEl.textContent = analyzingMsgs[i];
+    elapsed++;
+    timerEl.textContent = elapsed + "s";
+  }, 1000);
+
   try {
     var res = await fetch("/api/analyze", {
       method: "POST",
@@ -335,16 +442,22 @@ async function startAnalysis() {
     clearInterval(interval);
     if (!res.ok) throw new Error(data.error || "Analysis failed");
     G.profile = data.profile;
-    document.getElementById("profile-display").innerHTML = renderProfile(G.profile);
-    show("screen-guessing");
+
+    if (G.soloMode) {
+      document.getElementById("solo-profile-display").innerHTML = renderProfile(G.profile);
+      show("screen-solo-result");
+    } else {
+      document.getElementById("profile-display").innerHTML = renderProfile(G.profile);
+      show("screen-guessing");
+    }
   } catch(e) {
     clearInterval(interval);
     alert("Analysis failed: " + e.message);
-    show("screen-done");
+    show(G.soloMode ? "screen-solo-setup" : "screen-done");
   }
 }
 
-// VOTING
+// --- VOTING ---
 function startVoting() {
   G.votes = {};
   G.currentVoterIdx = 0;
@@ -394,7 +507,6 @@ function submitVote() {
 function showReveal() {
   document.getElementById("reveal-name").textContent = G.secretPlayer;
   document.getElementById("reveal-profile").innerHTML = renderProfile(G.profile);
-
   var html = "";
   var correctCount = 0;
   G.players.forEach(function(p) {
@@ -406,15 +518,19 @@ function showReveal() {
       + "<span class='vote-arrow'>voted → " + (guess || "?") + "</span>"
       + "</div>";
   });
-
   var summary = correctCount === 0 ? "Nobody guessed it — the mystery player wins! 🏆"
     : correctCount === G.players.length ? "Everyone got it! 🎯"
     : correctCount + " out of " + G.players.length + " got it right!";
-
   document.getElementById("reveal-results").innerHTML =
     "<p style='color:#a78bfa;font-weight:600;margin-bottom:12px;'>" + summary + "</p>" + html;
-
   show("screen-reveal");
+}
+
+// --- RESET ---
+function soloPlayAgain() {
+  G.sections = []; G.questions = []; G.responses = {};
+  G.currentPlayerIdx = 0; G.secretPlayer = null; G.profile = null;
+  loadSectionsScreen();
 }
 
 function playAgain() {

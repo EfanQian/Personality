@@ -46,7 +46,7 @@ Reply with ONLY a JSON object, no markdown, no explanation:
       },
       body: JSON.stringify({
         model: "liquid/lfm-2.5-1.2b-instruct:free",
-        max_tokens: 300,
+        max_tokens: 600,
         messages: [{ role: "user", content: prompt }],
       }),
     });
