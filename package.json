@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A party game where you guess your friends' personality profiles",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "scripts": {
     "start": "node server.js"
