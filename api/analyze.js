@@ -73,8 +73,8 @@ HINT2: [another clue about their habits]`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "liquid/lfm-2.5-1.2b-instruct:free",
-        max_tokens: 300,
+        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        max_tokens: 400,
         messages: [{ role: "user", content: prompt }],
       }),
     });
