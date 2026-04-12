@@ -10,6 +10,37 @@ async function readBody(req) {
   });
 }
 
+// Attempt to close truncated JSON so it can be parsed
+function repairJson(str) {
+  // Remove trailing comma before closing
+  str = str.replace(/,\s*$/, "");
+
+  // Close any unclosed string (odd number of unescaped quotes)
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    if (escaped) { escaped = false; continue; }
+    if (str[i] === "\\") { escaped = true; continue; }
+    if (str[i] === '"') inString = !inString;
+  }
+  if (inString) str += '"';
+
+  // Close open arrays and objects
+  const stack = [];
+  inString = false; escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    if (escaped) { escaped = false; continue; }
+    if (str[i] === "\\") { escaped = true; continue; }
+    if (str[i] === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (str[i] === "{") stack.push("}");
+    else if (str[i] === "[") stack.push("]");
+    else if (str[i] === "}" || str[i] === "]") stack.pop();
+  }
+  str += stack.reverse().join("");
+  return str;
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -32,10 +63,10 @@ module.exports = async (req, res) => {
 
   const answers = responses.map((r) => `Q: ${r.text} / A: ${r.choice}`).join(" | ");
 
-  const prompt = `Party game: guess the personality. Quiz answers: ${answers}
+  const prompt = `Party game. Quiz answers: ${answers}
 
-Reply with ONLY a JSON object, no markdown, no explanation:
-{"nickname":"funny title","traits":["trait1","trait2","trait3"],"groupRole":"their role in 1 sentence","characterVibe":"one archetype word or phrase","description":"This person... one funny sentence.","hints":["hint1","hint2"]}`;
+Reply with ONLY this JSON, nothing else:
+{"nickname":"funny title","traits":["a","b","c"],"groupRole":"1 sentence","characterVibe":"archetype","description":"This person... 1 sentence.","hints":["hint1","hint2"]}`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -46,7 +77,7 @@ Reply with ONLY a JSON object, no markdown, no explanation:
       },
       body: JSON.stringify({
         model: "liquid/lfm-2.5-1.2b-instruct:free",
-        max_tokens: 600,
+        max_tokens: 400,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -62,10 +93,25 @@ Reply with ONLY a JSON object, no markdown, no explanation:
     if (!text) throw new Error("No response from model");
 
     const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Model did not return JSON. Got: " + cleaned.slice(0, 200));
 
-    const profile = JSON.parse(jsonMatch[0]);
+    // Extract JSON object
+    const start = cleaned.indexOf("{");
+    if (start === -1) throw new Error("Model did not return JSON. Got: " + cleaned.slice(0, 200));
+    let jsonStr = cleaned.slice(start);
+
+    // Try to parse, then try to repair if truncated
+    let profile;
+    try {
+      profile = JSON.parse(jsonStr);
+    } catch (e) {
+      const repaired = repairJson(jsonStr);
+      try {
+        profile = JSON.parse(repaired);
+      } catch (e2) {
+        throw new Error("Could not parse model response. Got: " + jsonStr.slice(0, 200));
+      }
+    }
+
     res.json({ profile });
   } catch (err) {
     console.error("Analysis error:", err.message);
