@@ -12,24 +12,27 @@ async function readBody(req) {
 
 function clean(s) {
   if (!s) return "";
+  // Strip control characters, replace double quotes with single quotes
   return s.replace(/[\x00-\x1F\x7F]/g, " ").replace(/"/g, "'").trim();
 }
 
 function parsePlainText(text) {
+  // Use last match in case model echoes the example first
   const get = (key) => {
-    const match = text.match(new RegExp("^" + key + ":\\s*(.+)", "im"));
-    return match ? clean(match[1]) : "";
+    const matches = [...text.matchAll(new RegExp("^" + key + ":\\s*(.+)", "gim"))];
+    if (matches.length === 0) return "";
+    return clean(matches[matches.length - 1][1]);
   };
   const traitsRaw = get("TRAITS");
   const traits = traitsRaw
     ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean).slice(0, 5)
-    : ["Mysterious", "Unpredictable", "Unique"];
+    : ["Adaptable", "Observant", "Genuine"];
   return {
-    nickname:      get("NICKNAME")   || "The Enigma",
+    nickname:      get("NICKNAME")   || "The Wild Card",
     traits,
-    groupRole:     get("ROLE")       || "The wildcard of the group",
-    characterVibe: get("VIBE")       || "Enigmatic",
-    description:   get("ABOUT")      || "This person defies easy categorization.",
+    groupRole:     get("ROLE")       || "The one who keeps things interesting",
+    characterVibe: get("VIBE")       || "Unpredictable",
+    description:   get("ABOUT")      || "This person is one of a kind.",
     superpower:    get("SUPERPOWER") || "",
     weakness:      get("WEAKNESS")   || "",
     motto:         get("MOTTO")      || "",
@@ -58,25 +61,18 @@ module.exports = async (req, res) => {
 
   const answers = responses.map((r) => `- ${r.text}: ${r.choice}`).join("\n");
 
-  const prompt = `You are hosting a party game. A player just answered these personality quiz questions:
+  const prompt = `You are a witty party game host. Read these quiz answers and write a fun personality profile.
 
+Quiz answers:
 ${answers}
 
-Write their personality profile. Each line must start with the label exactly as shown.
+Instructions:
+- NICKNAME should be a clever, specific title like "The One Who Googles Everything" or "Emotionally Available But Only After 11pm"
+- TRAITS should be 3-4 specific traits from the answers
+- ABOUT must start with "This person" and be one funny, specific sentence
+- Base everything on the actual answers, not generic stereotypes
 
-NICKNAME: The Chaos Gremlin With a Color-Coded Planner
-TRAITS: impulsive, detail-obsessed, secretly soft
-ROLE: The one who texts 3am memes but shows up on time to everything
-VIBE: Chaotic Neutral with a Pinterest board
-ABOUT: This person will reorganize your entire kitchen and call it relaxing.
-SUPERPOWER: Reads the energy in any room within 30 seconds flat
-WEAKNESS: Cannot resist starting a new project before finishing the last one
-MOTTO: It'll make sense eventually
-HINT1: Their phone battery is always at exactly 12%
-HINT2: Has a strong opinion about how to load a dishwasher
-
-Now write a completely different profile that matches the quiz answers above. Use the same line format:
-
+Write the profile now:
 NICKNAME:
 TRAITS:
 ROLE:
@@ -96,7 +92,7 @@ HINT2:`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "nvidia/nemotron-3-super-120b-a12b:free",
+        model: "stepfun/step-3.5-flash:free",
         max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -109,14 +105,13 @@ HINT2:`;
       throw new Error(`OpenRouter error ${response.status}: ${detail}`);
     }
 
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) throw new Error("No response from model");
+    const rawText = data.choices?.[0]?.message?.content || "";
+    const profile = parsePlainText(rawText);
 
-    const profile = parsePlainText(text);
-
-    // Ensure the response is always valid JSON-safe
-    const safeProfile = JSON.parse(JSON.stringify(profile));
-    res.json({ profile: safeProfile });
+    // Force a clean round-trip through JSON to guarantee valid output
+    const safeStr = JSON.stringify({ profile });
+    res.setHeader("Content-Type", "application/json");
+    res.end(safeStr);
   } catch (err) {
     console.error("Analysis error:", err.message);
     res.status(500).json({ error: "Analysis failed: " + err.message });
