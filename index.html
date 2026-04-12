@@ -63,6 +63,7 @@
     .profile-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6366f1; margin-bottom: 4px; }
     .profile-value { color: #e8e8f0; font-size: 0.95rem; line-height: 1.5; }
     .profile-value.italic { color: #a78bfa; font-style: italic; }
+    .profile-value.deep-dive { color: #cbd5e1; font-size: 0.92rem; line-height: 1.7; border-left: 3px solid #4f46e5; padding-left: 12px; margin-top: 4px; }
     .hints-list { list-style: none; }
     .hints-list li { color: #94a3b8; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #1e1e35; display: flex; align-items: flex-start; gap: 8px; }
     .hints-list li:last-child { border-bottom: none; }
@@ -289,12 +290,13 @@ function renderProfile(p) {
   var html = "<div class='nickname'>"+(p.nickname||"Mystery")+"</div>"
     +"<div class='vibe-tag'>✨ "+(p.characterVibe||"")+"</div>"
     +"<div class='traits-wrap'>"+traits+"</div>"
-    +"<div class='profile-section'><div class='profile-label'>Who they are</div><div class='profile-value'>"+(p.description||"")+"</div></div>"
-    +"<div class='profile-section'><div class='profile-label'>Group role</div><div class='profile-value'>"+(p.groupRole||"")+"</div></div>";
+    +"<div class='profile-section'><div class='profile-label'>First impression</div><div class='profile-value'>"+(p.description||"")+"</div></div>";
+  if (p.deepDive)   html += "<div class='profile-section'><div class='profile-label'>The real story</div><div class='profile-value deep-dive'>"+(p.deepDive||"")+"</div></div>";
+  html += "<div class='profile-section'><div class='profile-label'>Group role</div><div class='profile-value'>"+(p.groupRole||"")+"</div></div>";
   if (p.superpower) html += "<div class='profile-section'><div class='profile-label'>⚡ Superpower</div><div class='profile-value'>"+p.superpower+"</div></div>";
   if (p.weakness)   html += "<div class='profile-section'><div class='profile-label'>🎯 Weakness</div><div class='profile-value'>"+p.weakness+"</div></div>";
-  if (p.motto)      html += "<div class='profile-section'><div class='profile-label'>💬 Motto</div><div class='profile-value italic'>""+p.motto+""</div></div>";
-  if (hints)        html += "<div class='profile-section'><div class='profile-label'>Hints</div><ul class='hints-list'>"+hints+"</ul></div>";
+  if (p.motto)      html += "<div class='profile-section'><div class='profile-label'>💬 Motto</div><div class='profile-value italic'>\u201c"+p.motto+"\u201d</div></div>";
+  if (hints)        html += "<div class='profile-section'><div class='profile-label'>Clues</div><ul class='hints-list'>"+hints+"</ul></div>";
   return html;
 }
 
