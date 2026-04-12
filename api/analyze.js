@@ -39,23 +39,22 @@ function parsePlainText(text) {
   };
 }
 
-const EXAMPLE_ANSWERS = `- What energizes you most: Solving a hard problem alone
-- In a group project you are: The one quietly doing 80% of the work
-- Your decision style: Research everything, then decide
-- Ideal weekend: A long walk with no notifications`;
+const EXAMPLE_ANSWERS = `- What energizes you: Solving a problem alone
+- In a group you are: Quietly doing most of the work
+- Decision style: Research everything first
+- Ideal weekend: Walk with no notifications`;
 
 const EXAMPLE_RESPONSE = `NICKNAME: The Quietly Overqualified
-TRAITS: resourceful, introverted, detail-obsessed, secretly competitive
-ROLE: The one who shows up with the solution already written before the meeting starts
+TRAITS: introverted, detail-obsessed, resourceful, secretly competitive
+ROLE: Shows up with the solution before the meeting even starts
 VIBE: Introverted Mastermind
 ABOUT: This person has a color-coded spreadsheet for things that don't need spreadsheets.
-DEEPDIVE: Underneath the calm exterior is someone who has run through every possible outcome of this conversation and prepared a response for each one. They work best alone, deliver results that make everyone else look bad by comparison, and genuinely enjoy the silence that follows.
-SUPERPOWER: Can research, plan, and execute something while everyone else is still deciding on a name for the group chat
-WEAKNESS: Will redo your work if you do it slightly differently than they would have
-MOTTO: If it's worth doing, it's worth doing with a 12-tab browser and a backup plan
-HINT1: Their camera roll is 90% screenshots of things they want to remember
-HINT2: Has a strong opinion about the right way to load a dishwasher
-HINT3: Replies to texts days late but the reply is three paragraphs`;
+DEEPDIVE: Calm on the outside, they've already run through every outcome and drafted a response. Works best alone, delivers results that make everyone look underprepared, and enjoys silence more than most.
+SUPERPOWER: Can research, plan, and execute while others are still naming the group chat
+WEAKNESS: Will silently redo your work if you do it slightly wrong
+MOTTO: If it's worth doing, it's worth a 12-tab browser and a backup plan
+HINT1: Camera roll is 90% screenshots of things to remember later
+HINT2: Replies days late, but it's three paragraphs`;
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -87,7 +86,7 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: "stepfun/step-3.5-flash:free",
-        max_tokens: 600,
+        max_tokens: 280,
         messages: [
           {
             role: "system",
