@@ -10,15 +10,22 @@ async function readBody(req) {
   });
 }
 
+function clean(s) {
+  if (!s) return "";
+  return s.replace(/[\x00-\x1F\x7F]/g, " ").replace(/"/g, "'").trim();
+}
+
 function parsePlainText(text) {
   const get = (key) => {
     const match = text.match(new RegExp("^" + key + ":\\s*(.+)", "im"));
-    return match ? match[1].trim() : "";
+    return match ? clean(match[1]) : "";
   };
   const traitsRaw = get("TRAITS");
-  const traits = traitsRaw ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean) : ["Mysterious", "Unpredictable", "Unique"];
+  const traits = traitsRaw
+    ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean).slice(0, 5)
+    : ["Mysterious", "Unpredictable", "Unique"];
   return {
-    nickname:      get("NICKNAME")   || "The Mystery",
+    nickname:      get("NICKNAME")   || "The Enigma",
     traits,
     groupRole:     get("ROLE")       || "The wildcard of the group",
     characterVibe: get("VIBE")       || "Enigmatic",
@@ -26,7 +33,7 @@ function parsePlainText(text) {
     superpower:    get("SUPERPOWER") || "",
     weakness:      get("WEAKNESS")   || "",
     motto:         get("MOTTO")      || "",
-    hints: [get("HINT1"), get("HINT2")].filter(Boolean),
+    hints:         [get("HINT1"), get("HINT2")].filter(Boolean),
   };
 }
 
@@ -51,23 +58,35 @@ module.exports = async (req, res) => {
 
   const answers = responses.map((r) => `- ${r.text}: ${r.choice}`).join("\n");
 
-  const prompt = `You are a witty party game host creating a personality profile from quiz answers. Be creative, specific, and funny — base everything on the actual answers given.
+  const prompt = `You are hosting a party game. A player just answered these personality quiz questions:
 
-Quiz answers:
 ${answers}
 
-Fill in this profile using the exact format below. Do not copy the examples — write something original based on the answers above.
+Write their personality profile. Each line must start with the label exactly as shown.
 
-NICKNAME: The Overthinker's Nightmare  (example — write a different original title)
-TRAITS: loyal, chaotic, secretly judging everyone  (example — write traits that match the answers)
-ROLE: The one who arrives late but somehow fixes everything  (example)
-VIBE: Chaotic Good  (example — could be an archetype, alignment, or vibe)
-ABOUT: This person has a 47-tab browser and calls it organized.  (example — write a specific funny observation)
-SUPERPOWER: Can read a room better than anyone but will never admit it
-WEAKNESS: Absolutely cannot make a decision without a pros and cons list
-MOTTO: Why do it now when you can do it better in 10 minutes?
-HINT1: Their texts are either one word or an essay, no in-between
-HINT2: Has a very specific way of doing things and notices when you do it wrong`;
+NICKNAME: The Chaos Gremlin With a Color-Coded Planner
+TRAITS: impulsive, detail-obsessed, secretly soft
+ROLE: The one who texts 3am memes but shows up on time to everything
+VIBE: Chaotic Neutral with a Pinterest board
+ABOUT: This person will reorganize your entire kitchen and call it relaxing.
+SUPERPOWER: Reads the energy in any room within 30 seconds flat
+WEAKNESS: Cannot resist starting a new project before finishing the last one
+MOTTO: It'll make sense eventually
+HINT1: Their phone battery is always at exactly 12%
+HINT2: Has a strong opinion about how to load a dishwasher
+
+Now write a completely different profile that matches the quiz answers above. Use the same line format:
+
+NICKNAME:
+TRAITS:
+ROLE:
+VIBE:
+ABOUT:
+SUPERPOWER:
+WEAKNESS:
+MOTTO:
+HINT1:
+HINT2:`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -77,7 +96,7 @@ HINT2: Has a very specific way of doing things and notices when you do it wrong`
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        model: "nvidia/nemotron-3-super-120b-a12b:free",
         max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       }),
@@ -94,7 +113,10 @@ HINT2: Has a very specific way of doing things and notices when you do it wrong`
     if (!text) throw new Error("No response from model");
 
     const profile = parsePlainText(text);
-    res.json({ profile });
+
+    // Ensure the response is always valid JSON-safe
+    const safeProfile = JSON.parse(JSON.stringify(profile));
+    res.json({ profile: safeProfile });
   } catch (err) {
     console.error("Analysis error:", err.message);
     res.status(500).json({ error: "Analysis failed: " + err.message });
