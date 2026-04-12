@@ -34,18 +34,12 @@ module.exports = async (req, res) => {
     .map((r) => `Q: ${r.text}\nA: ${r.choice}`)
     .join("\n\n");
 
-  const systemPrompt = `You are the host of a party game called "Guess the Personality."
-You have a player's quiz answers. Create a fun, engaging personality profile.
+  const userPrompt = `You are a party game host. A player answered these quiz questions:
 
-Return ONLY valid JSON matching this exact schema:
-{
-  "nickname": "A creative title like 'The Quiet Strategist' or 'Chaos Incarnate (Organized Edition)'",
-  "traits": ["trait 1", "trait 2", "trait 3", "trait 4"],
-  "groupRole": "Their role in any friend group (1-2 sentences)",
-  "characterVibe": "An archetype description with NO copyrighted character names.",
-  "description": "2-3 funny, revealing sentences starting with 'This person...'",
-  "hints": ["A subtle behavioral hint", "Another clue about their habits"]
-}`;
+${responseText}
+
+Create a fun personality profile. Reply with ONLY a JSON object, no other text, no markdown, no code fences. Use exactly this structure:
+{"nickname":"creative title","traits":["trait1","trait2","trait3","trait4"],"groupRole":"their role in 1-2 sentences","characterVibe":"archetype description","description":"This person... 2-3 funny sentences","hints":["subtle hint 1","subtle hint 2"]}`;
 
   try {
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -58,8 +52,7 @@ Return ONLY valid JSON matching this exact schema:
         model: "nvidia/nemotron-3-nano-30b-a3b:free",
         max_tokens: 1024,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Quiz answers:\n\n${responseText}\n\nGenerate their personality profile.` },
+          { role: "user", content: userPrompt },
         ],
       }),
     });
@@ -74,8 +67,12 @@ Return ONLY valid JSON matching this exact schema:
     const text = data.choices?.[0]?.message?.content;
     if (!text) throw new Error("No response from model");
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Model did not return valid JSON");
+    // Strip markdown code fences if present
+    const cleaned = text.replace(/```json\s*/gi, "").replace(/```\s*/gi, "").trim();
+
+    // Extract first JSON object found
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("Model did not return JSON. Raw response: " + cleaned.slice(0, 200));
 
     const profile = JSON.parse(jsonMatch[0]);
     res.json({ profile });
