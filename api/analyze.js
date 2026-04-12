@@ -48,13 +48,14 @@ const EXAMPLE_RESPONSE = `NICKNAME: The Quietly Overqualified
 TRAITS: introverted, detail-obsessed, resourceful, secretly competitive
 ROLE: Shows up with the solution before the meeting even starts
 VIBE: Introverted Mastermind
-ABOUT: This person has a color-coded spreadsheet for things that don't need spreadsheets.
-DEEPDIVE: Calm on the outside, they've already run through every outcome and drafted a response. Works best alone, delivers results that make everyone look underprepared, and enjoys silence more than most.
-SUPERPOWER: Can research, plan, and execute while others are still naming the group chat
-WEAKNESS: Will silently redo your work if you do it slightly wrong
+ABOUT: This person has a color-coded spreadsheet for things that definitely don't need spreadsheets.
+DEEPDIVE: Calm on the outside, this person has already run through every possible outcome and drafted a response for each one. They work best alone, deliver results that quietly make everyone else look underprepared, and find silence more comfortable than most people find conversation. There is a plan. There is always a plan.
+SUPERPOWER: Can research, plan, and execute something while others are still naming the group chat
+WEAKNESS: Will silently redo your work if you did it even slightly differently than they would have
 MOTTO: If it's worth doing, it's worth a 12-tab browser and a backup plan
-HINT1: Camera roll is 90% screenshots of things to remember later
-HINT2: Replies days late, but it's three paragraphs`;
+HINT1: Their camera roll is 90% screenshots of articles they will definitely read later
+HINT2: Replies to texts three days late, but the reply is three paragraphs
+HINT3: Has a strong and well-reasoned opinion about the correct way to load a dishwasher`;
 
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -85,12 +86,12 @@ module.exports = async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "stepfun/step-3.5-flash:free",
-        max_tokens: 280,
+        model: "nvidia/nemotron-3-nano-30b-a3b:free",
+        max_tokens: 450,
         messages: [
           {
             role: "system",
-            content: "You are a witty, sharp party game host who creates hilarious and accurate personality profiles. You write specific, funny observations — never generic. You always follow the exact format given."
+            content: "You are a witty party game host who writes sharp, specific personality profiles. Always follow the exact format given. Never use placeholder text. Write real creative content based on the actual quiz answers."
           },
           {
             role: "user",
@@ -102,21 +103,37 @@ module.exports = async (req, res) => {
           },
           {
             role: "user",
-            content: `Great! Now create a completely different profile for this new person's quiz answers:\n\n${answers}`
+            content: `Now create a completely different profile for this new person's quiz answers:\n\n${answers}`
           }
         ],
       }),
     });
 
-    const data = await response.json();
+    // Read as text first — avoids crash if response is truncated
+    const rawText = await response.text();
 
-    if (!response.ok) {
-      const detail = data.error?.message || data.error?.code || JSON.stringify(data);
-      throw new Error(`OpenRouter error ${response.status}: ${detail}`);
+    let modelText = "";
+    try {
+      const parsed = JSON.parse(rawText);
+      if (!parsed.error) {
+        modelText = parsed.choices?.[0]?.message?.content || "";
+      } else {
+        const detail = parsed.error?.message || parsed.error?.code || JSON.stringify(parsed.error);
+        throw new Error(`OpenRouter error ${response.status}: ${detail}`);
+      }
+    } catch (parseErr) {
+      // Response was truncated — try to salvage the content field via regex
+      const m = rawText.match(/"content"\s*:\s*"((?:[^"\\]|\\.)+)"/);
+      if (m) {
+        modelText = m[1].replace(/\\n/g, "\n").replace(/\\"/g, "'").replace(/\\\\/g, "\\");
+      } else {
+        throw new Error("Could not read model response (likely timeout). Try again.");
+      }
     }
 
-    const rawText = data.choices?.[0]?.message?.content || "";
-    const profile = parsePlainText(rawText);
+    if (!modelText) throw new Error("Model returned no content");
+
+    const profile = parsePlainText(modelText);
     const safeStr = JSON.stringify({ profile });
     res.setHeader("Content-Type", "application/json");
     res.end(safeStr);
