@@ -16,14 +16,17 @@ function clean(s) {
 }
 
 function extractContent(rawText) {
-  try {
-    const d = JSON.parse(rawText);
-    if (d.error) throw new Error("OpenRouter: " + (d.error.message || d.error.code || "error"));
-    return d.choices?.[0]?.message?.content || null;
-  } catch (e) {
-    if (!(e instanceof SyntaxError)) throw e;
+  // Try clean JSON parse first
+  let parsed = null;
+  try { parsed = JSON.parse(rawText); } catch (_) { /* fall through */ }
+
+  if (parsed !== null) {
+    if (parsed.error) throw new Error("OpenRouter: " + (parsed.error.message || parsed.error.code || "error"));
+    const content = parsed.choices?.[0]?.message?.content;
+    if (content) return content;
   }
-  // Manually extract content field from malformed JSON
+
+  // Manual char-by-char extraction from malformed/truncated JSON
   const idx = rawText.lastIndexOf('"content":');
   if (idx === -1) return null;
   let pos = idx + 10;
@@ -71,54 +74,47 @@ function parsePlainText(text) {
 }
 
 function isBadOutput(profile) {
-  const bad = ["funny title","placeholder","[","your answer","fill in","example","nickname here","trait here","human crash","crash test","dummy"];
+  const bad = ["funny title", "placeholder", "[", "your answer", "fill in", "example", "nickname here", "trait here", "human crash", "crash test", "dummy", "clever funny"];
   const nick = (profile.nickname || "").toLowerCase();
   return !profile.nickname || bad.some(b => nick.includes(b));
 }
 
 async function callModel(apiKey, answers, attempt) {
-  // Unique seed per call to prevent OpenRouter response caching
-  const seed = Date.now() + "-" + Math.random().toString(36).slice(2, 8);
-
-  const systemPrompt =
-    "You are a sharp, witty writer who creates one-of-a-kind personality profiles for a party game. " +
-    "You analyze quiz answers carefully and write a profile that is SPECIFIC to those answers — not generic. " +
-    "The NICKNAME must be a clever, funny, specific phrase based on what the person actually answered. " +
-    "NEVER write placeholder text. NEVER copy from examples. Every field must reflect the actual quiz answers. " +
-    "Respond ONLY with the profile in the exact format requested. [ref:" + seed + "]";
+  const seed = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 
   const userMsg =
-    "Here are the quiz answers from one player. Read them carefully:\n\n" +
-    answers +
-    "\n\n" +
-    "Write a personality profile for this specific person. Use this exact format:\n\n" +
-    "NICKNAME: [A clever, funny 3-6 word title that reflects their specific answers — e.g. 'The Accidental Chaos Architect' or 'The One Who Planned This Six Months Ago']\n" +
-    "TRAITS: [5 traits separated by commas, based on their actual answers]\n" +
-    "ROLE: [Their specific dynamic in a group, one sentence]\n" +
-    "VIBE: [2-4 words capturing their energy]\n" +
-    "ABOUT: [2-3 sentences describing them based on their answers. Be specific and funny.]\n" +
-    "DEEPDIVE: [3-4 sentences going deeper — what drives them, how they actually operate, what people miss about them at first]\n" +
-    "SUPERPOWER: [One specific ability this person has, based on their answers]\n" +
-    "WEAKNESS: [One specific flaw, based on their answers]\n" +
-    "MOTTO: [A short phrase they would actually say]\n" +
-    "HINT1: [A specific clue about their behavior — one sentence]\n" +
-    "HINT2: [Another specific clue — one sentence]\n" +
-    "HINT3: [A third specific clue — one sentence]\n\n" +
-    (attempt > 1
-      ? "IMPORTANT: Make the NICKNAME extremely creative and specific. It must not be generic.\n\n"
-      : "") +
-    "Write the profile now:";
+    "Session: " + seed + "\n\n" +
+    "A player just answered these personality quiz questions:\n\n" +
+    answers + "\n\n" +
+    "Based ONLY on those specific answers, write their personality profile using this format:\n\n" +
+    "NICKNAME: (a unique, funny, specific 3-6 word phrase that fits THEIR answers)\n" +
+    "TRAITS: (5 comma-separated traits drawn from their actual answers)\n" +
+    "ROLE: (their specific role in a friend group, one sentence)\n" +
+    "VIBE: (2-4 words)\n" +
+    "ABOUT: (2-3 funny, specific sentences about this person)\n" +
+    "DEEPDIVE: (3-4 sentences going deeper on what makes them tick)\n" +
+    "SUPERPOWER: (one specific ability they have)\n" +
+    "WEAKNESS: (one specific flaw)\n" +
+    "MOTTO: (a short phrase they'd actually say)\n" +
+    "HINT1: (one behavioral clue about them)\n" +
+    "HINT2: (another clue)\n" +
+    "HINT3: (a third clue)\n\n" +
+    (attempt > 1 ? "The NICKNAME must be very creative and specific to their answers — not generic at all.\n\n" : "") +
+    "Start with NICKNAME:";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemma-4-31b-it:free",
+      model: "meta-llama/llama-4-scout:free",
       max_tokens: 2000,
-      temperature: attempt > 1 ? 1.2 : 1.0,
+      temperature: attempt > 1 ? 1.1 : 0.95,
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user",   content: userMsg },
+        {
+          role: "system",
+          content: "You are a sharp, witty writer for a party game. You write personality profiles that are specific, funny, and based entirely on the quiz answers provided. You never use placeholder text or generic descriptions. Every profile is unique to the person's actual answers."
+        },
+        { role: "user", content: userMsg }
       ],
     }),
   });
@@ -150,7 +146,10 @@ module.exports = async (req, res) => {
     for (let attempt = 1; attempt <= 3; attempt++) {
       const rawText = await callModel(apiKey, answers, attempt);
       const content = extractContent(rawText);
-      if (!content) throw new Error("No content in response. Raw: " + rawText.slice(0, 200));
+      if (!content) {
+        if (attempt < 3) continue;
+        throw new Error("No content in response. Raw: " + rawText.slice(0, 300));
+      }
 
       const parsed = parsePlainText(content);
 
