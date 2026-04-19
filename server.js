@@ -491,7 +491,7 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     const completion = await client.chat.completions.create({
-      model: "meta-llama/llama-4-scout:free",
+      model: "meta-llama/llama-3.3-70b-instruct:free",
       max_tokens: 220,
       messages,
       seed: Date.now() % 99999,
