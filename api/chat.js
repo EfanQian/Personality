@@ -1,3 +1,5 @@
+const { getFreeModels } = require("./_models");
+
 // ─── NPC Personality Configs ───────────────────────────────────────────────
 
 const NPC_CONFIGS = {
@@ -67,13 +69,8 @@ module.exports = async (req, res) => {
     { role: "user", content: userMessage },
   ];
 
-  // Try models in order until one succeeds — free tier models are intermittent
-  const MODELS = [
-    "google/gemma-3n-e4b-it:free",
-    "google/gemma-3-4b-it:free",
-    "openai/gpt-oss-20b:free",
-    "openai/gpt-oss-120b:free",
-  ];
+  // Fetch fresh list of free models, fall back to hardcoded list if unavailable
+  const MODELS = await getFreeModels(apiKey);
 
   let lastError = "All models unavailable, please try again";
 

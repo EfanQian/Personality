@@ -1,3 +1,5 @@
+const { getFreeModels } = require("./_models");
+
 async function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
@@ -79,7 +81,7 @@ function isBadOutput(profile) {
   return !profile.nickname || bad.some(b => nick.includes(b));
 }
 
-async function callModel(apiKey, answers, attempt) {
+async function callModel(apiKey, answers, attempt, model) {
   const seed = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 
   const userMsg =
@@ -106,7 +108,7 @@ async function callModel(apiKey, answers, attempt) {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "meta-llama/llama-4-scout:free",
+      model,
       max_tokens: 2000,
       temperature: attempt > 1 ? 1.1 : 0.95,
       messages: [
@@ -142,23 +144,38 @@ module.exports = async (req, res) => {
 
   try {
     let profile = null;
+    const models = await getFreeModels(apiKey);
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const rawText = await callModel(apiKey, answers, attempt);
-      const content = extractContent(rawText);
-      if (!content) {
-        if (attempt < 3) continue;
-        throw new Error("No content in response. Raw: " + rawText.slice(0, 300));
+    // Outer loop: try each model; inner loop: retry same model up to 3x for bad output
+    outerLoop:
+    for (const model of models) {
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        let rawText;
+        try {
+          rawText = await callModel(apiKey, answers, attempt, model);
+        } catch (fetchErr) {
+          console.warn(`[analyze] model ${model} fetch error:`, fetchErr.message);
+          break; // try next model
+        }
+
+        const content = extractContent(rawText);
+        if (!content) {
+          console.warn(`[analyze] model ${model} attempt ${attempt}: no content`);
+          if (attempt === 3) break; // try next model
+          continue;
+        }
+
+        const parsed = parsePlainText(content);
+        if (!isBadOutput(parsed)) {
+          profile = parsed;
+          break outerLoop;
+        }
+        console.warn(`[analyze] model ${model} attempt ${attempt}: bad output`);
+        if (attempt === 3) break; // try next model
       }
-
-      const parsed = parsePlainText(content);
-
-      if (!isBadOutput(parsed)) {
-        profile = parsed;
-        break;
-      }
-      if (attempt === 3) profile = parsed;
     }
+
+    if (!profile) throw new Error("All models produced unusable output");
 
     const final = {
       nickname:      profile.nickname      || "The Undeniable Force",
