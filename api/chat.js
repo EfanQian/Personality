@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
         "X-Title": "Personality Playground",
       },
       body: JSON.stringify({
-        model: "google/gemma-3-27b-it:free",
+        model: "openai/gpt-oss-20b:free",
         max_tokens: 220,
         messages,
         seed: Date.now() % 99999,
