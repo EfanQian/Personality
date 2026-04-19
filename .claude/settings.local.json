@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vercel:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://personality-pi.vercel.app/)",
+      "Bash(curl -s https://personality-pi.vercel.app/api/chat -X POST -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\" https://personality-pi.vercel.app/)",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\" -X POST https://personality-pi.vercel.app/api/chat -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" https://personality-pi.vercel.app/api/chat.js -X POST -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -X POST https://personality-pi.vercel.app/api/chat -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -X POST https://personality-pi.vercel.app/api/chat.js -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP:%{http_code}\" -X POST https://personality-pi.vercel.app/api/chat -H \"Content-Type: application/json\" -d '{\"npcId\":\"baby\",\"history\":[],\"userMessage\":\"hi there\"}')",
+      "Bash(curl -s \"https://openrouter.ai/api/v1/models\")",
+      "Bash(python3 -c ':*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('response',''\\)[:60] or d.get\\('error',''\\)[:80]\\)\" done)",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}' -X POST https://personality-pi.vercel.app/api/chat -H 'Content-Type: application/json' -d '{\"npcId\":\"teen\",\"history\":[],\"userMessage\":\"what do you think about people who wake up early\"}')",
+      "Bash(curl -s -w '\\\\nHTTP:%{http_code}' -X POST https://personality-pi.vercel.app/api/chat.js -H 'Content-Type: application/json' -d '{\"npcId\":\"teen\",\"history\":[],\"userMessage\":\"what do you think about people who wake up early\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); c=d.get\\('choices',[]\\); print\\(c[0].get\\('message',{}\\).get\\('content',''\\) if c else 'ERR: '+str\\(d.get\\('error',{}\\).get\\('message','?'\\)\\)[:70]\\)\" done)",
+      "Bash(curl -s -X POST https://openrouter.ai/api/v1/chat/completions -H 'Content-Type: application/json' -H 'Authorization: Bearer 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' -d '{:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d,indent=2\\)\\)\")",
+      "Bash(curl -s -X POST https://personality-pi.vercel.app/api/chat.js -H 'Content-Type: application/json' -d '{\"npcId\":\"teen\",\"history\":[],\"userMessage\":\"hello\"}')",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('response', d.get\\('error','?'\\)\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\('response', 'ERROR: '+d.get\\('error','?'\\)\\)\\)\")"
+    ]
+  }
+}
