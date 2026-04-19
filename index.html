@@ -735,7 +735,7 @@ async function sendMsg() {
 
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
-    addMsg('npc', '⚠️ Something went wrong — try again! (Make sure OPENROUTER_API_KEY is set)');
+    addMsg('npc', '⚠️ Something went wrong — ' + err.message);
     console.error('Chat error:', err.message);
   }
 
