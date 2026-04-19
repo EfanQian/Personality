@@ -93,7 +93,13 @@ module.exports = async (req, res) => {
       });
 
       const data = await response.json();
-      if (!response.ok) { lastError = data.error?.message || "API error " + response.status; continue; }
+      if (!response.ok) {
+        lastError = data.error?.message || "API error " + response.status;
+        console.warn(`[chat] ${model} failed: ${lastError}`);
+        // Rate limit is global — no point trying other models
+        if (response.status === 429) break;
+        continue;
+      }
 
       const msg = data.choices?.[0]?.message;
       const text = (msg?.content || msg?.reasoning || "").trim();

@@ -155,7 +155,14 @@ module.exports = async (req, res) => {
           rawText = await callModel(apiKey, answers, attempt, model);
         } catch (fetchErr) {
           console.warn(`[analyze] model ${model} fetch error:`, fetchErr.message);
-          break; // try next model
+          break;
+        }
+
+        // Parse error — check for rate limit before trying next model
+        let parsed;
+        try { parsed = JSON.parse(rawText); } catch (_) { parsed = null; }
+        if (parsed?.error?.code === 429) {
+          throw new Error(parsed.error.message || "Daily free request limit reached. Add credits at openrouter.ai or try again tomorrow.");
         }
 
         const content = extractContent(rawText);
