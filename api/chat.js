@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
         "X-Title": "Personality Playground",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.3-70b-instruct:free",
+        model: "mistralai/mistral-7b-instruct:free",
         max_tokens: 220,
         messages,
         seed: Date.now() % 99999,
