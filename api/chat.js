@@ -77,7 +77,7 @@ module.exports = async (req, res) => {
         "X-Title": "Personality Playground",
       },
       body: JSON.stringify({
-        model: "openai/gpt-oss-20b:free",
+        model: "google/gemma-3n-e4b-it:free",
         max_tokens: 220,
         messages,
         seed: Date.now() % 99999,
@@ -90,7 +90,8 @@ module.exports = async (req, res) => {
       throw new Error(data.error?.message || "OpenRouter API error: " + response.status);
     }
 
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const msg = data.choices?.[0]?.message;
+    const text = (msg?.content || msg?.reasoning || "").trim();
     if (!text) throw new Error("Empty response from model — please try again");
 
     res.json({ response: text, npcName: npc.name });
