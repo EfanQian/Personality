@@ -718,7 +718,7 @@ async function sendMsg() {
   showLoader();
 
   try {
-    const res = await fetch('/api/chat.js', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ npcId, history: histories[npcId], userMessage: text })
