@@ -360,6 +360,125 @@
     }
     @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
     @keyframes fadeUp  { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+    /* ── Reveal Button ──────────────────────────────────────── */
+    #reveal-btn {
+      display: none;
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, #a78bfa, #6366f1, #f472b6);
+      background-size: 200% 200%;
+      animation: gradShift 3s ease infinite;
+      border: none; border-radius: 24px;
+      color: #fff; padding: 13px 32px;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; z-index: 160;
+      box-shadow: 0 0 24px rgba(167,139,250,0.5);
+      letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    #reveal-btn:hover { transform: translateX(-50%) translateY(-2px); box-shadow: 0 0 36px rgba(167,139,250,0.7); }
+    @keyframes gradShift {
+      0%,100% { background-position: 0% 50%; }
+      50%      { background-position: 100% 50%; }
+    }
+
+    /* ── Profile Modal ──────────────────────────────────────── */
+    #profile-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(3,3,8,0.92);
+      backdrop-filter: blur(14px);
+      z-index: 400;
+      align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+    #profile-modal.open { display: flex; }
+    #profile-card {
+      background: #0e0e22;
+      border: 1px solid rgba(167,139,250,0.3);
+      border-radius: 22px;
+      padding: 36px 40px;
+      max-width: 560px; width: 92%;
+      max-height: 88vh; overflow-y: auto;
+      position: relative;
+      box-shadow: 0 0 60px rgba(99,102,241,0.2);
+    }
+    #profile-card::-webkit-scrollbar { width: 3px; }
+    #profile-card::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 2px; }
+    #profile-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.07); border: none;
+      color: #94a3b8; font-size: 1rem; cursor: pointer;
+      border-radius: 8px; padding: 5px 10px;
+      transition: background 0.2s, color 0.2s;
+    }
+    #profile-close:hover { background: rgba(255,255,255,0.14); color: #e2e8f0; }
+    #profile-loading {
+      text-align: center; padding: 40px 0; color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    #profile-loading .spin {
+      font-size: 2.5rem; display: block; margin-bottom: 16px;
+      animation: spinEmoji 1.4s linear infinite;
+    }
+    @keyframes spinEmoji { to { transform: rotate(360deg); } }
+    #profile-nickname {
+      font-size: 1.85rem; font-weight: 800; text-align: center;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px; line-height: 1.2;
+    }
+    #profile-vibe {
+      text-align: center; color: #94a3b8; font-size: 0.9rem;
+      margin-bottom: 18px; letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    #profile-traits {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; margin-bottom: 22px;
+    }
+    .profile-trait {
+      background: rgba(99,102,241,0.18);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.8rem; color: #c4b5fd; font-weight: 600;
+    }
+    .profile-section { margin-bottom: 18px; }
+    .profile-section-label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: #6366f1; margin-bottom: 6px;
+    }
+    .profile-section-text {
+      color: #cbd5e1; font-size: 0.9rem; line-height: 1.65;
+    }
+    .profile-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      margin-bottom: 18px;
+    }
+    .profile-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 13px 16px;
+    }
+    #profile-hints {
+      display: flex; flex-direction: column; gap: 8px;
+      margin-top: 4px;
+    }
+    .profile-hint {
+      background: rgba(167,139,250,0.08);
+      border-left: 3px solid #a78bfa;
+      border-radius: 0 10px 10px 0;
+      padding: 8px 14px;
+      color: #94a3b8; font-size: 0.85rem; line-height: 1.5;
+    }
+    #profile-motto {
+      text-align: center; margin: 20px 0 4px;
+      font-size: 1.05rem; font-style: italic;
+      color: #e2e8f0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 18px;
+    }
   </style>
 </head>
 <body>
@@ -404,6 +523,49 @@
   <div class="drow"><div class="dblank"></div><button class="dbtn" id="btn-dn">↓</button><div class="dblank"></div></div>
 </div>
 <button id="talk-btn-mobile" onclick="mobileInteract()">💬 Talk</button>
+
+<!-- ── Reveal Button ──────────────────────────────── -->
+<button id="reveal-btn" onclick="analyzePersonality()">✨ Reveal My Personality</button>
+
+<!-- ── Profile Modal ──────────────────────────────── -->
+<div id="profile-modal">
+  <div id="profile-card">
+    <button id="profile-close" onclick="closeProfile()">✕</button>
+    <div id="profile-loading"><span class="spin">🔮</span>Analyzing your personality...</div>
+    <div id="profile-content" style="display:none">
+      <div id="profile-nickname"></div>
+      <div id="profile-vibe"></div>
+      <div id="profile-traits"></div>
+      <div class="profile-section">
+        <div class="profile-section-label">About You</div>
+        <div class="profile-section-text" id="profile-about"></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-label">Deep Dive</div>
+        <div class="profile-section-text" id="profile-deepdive"></div>
+      </div>
+      <div class="profile-row">
+        <div class="profile-pill">
+          <div class="profile-section-label">Superpower</div>
+          <div class="profile-section-text" id="profile-superpower"></div>
+        </div>
+        <div class="profile-pill">
+          <div class="profile-section-label">Weakness</div>
+          <div class="profile-section-text" id="profile-weakness"></div>
+        </div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-label">Group Role</div>
+        <div class="profile-section-text" id="profile-role"></div>
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-label">How to Spot You</div>
+        <div id="profile-hints"></div>
+      </div>
+      <div id="profile-motto"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ── Intro Screen ───────────────────────────────── -->
 <div id="intro">
@@ -498,6 +660,7 @@ let nearNPC   = null;
 let activeNPC = null;
 let chatBusy  = false;
 const histories = {};
+const chattedWith = new Set();
 Object.keys(NPCS).forEach(id => histories[id] = []);
 
 // ═══════════════════════════════════════════════════════
@@ -732,6 +895,8 @@ async function sendMsg() {
     addMsg('npc', data.response);
     histories[npcId].push({ role: 'user',      content: text });
     histories[npcId].push({ role: 'assistant', content: data.response });
+    chattedWith.add(npcId);
+    checkAllChatted();
 
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
@@ -743,6 +908,82 @@ async function sendMsg() {
   dialogSend.disabled = false;
   dialogInp.disabled = false;
   if (activeNPC) dialogInp.focus();
+}
+
+// ═══════════════════════════════════════════════════════
+//  PERSONALITY ANALYSIS
+// ═══════════════════════════════════════════════════════
+function checkAllChatted() {
+  if (chattedWith.size >= Object.keys(NPCS).length) {
+    document.getElementById('reveal-btn').style.display = 'block';
+  }
+}
+
+async function analyzePersonality() {
+  const modal = document.getElementById('profile-modal');
+  const loading = document.getElementById('profile-loading');
+  const content = document.getElementById('profile-content');
+
+  modal.classList.add('open');
+  loading.style.display = 'block';
+  content.style.display = 'none';
+
+  // Build Q&A pairs from all NPC conversation histories
+  const responses = [];
+  for (const [npcId, history] of Object.entries(histories)) {
+    for (let i = 0; i < history.length - 1; i++) {
+      if (history[i].role === 'assistant' && history[i + 1].role === 'user') {
+        responses.push({ text: history[i].content, choice: history[i + 1].content });
+      }
+    }
+  }
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ responses })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
+
+    const p = data.profile;
+    document.getElementById('profile-nickname').textContent = p.nickname;
+    document.getElementById('profile-vibe').textContent = p.characterVibe;
+    document.getElementById('profile-about').textContent = p.description;
+    document.getElementById('profile-deepdive').textContent = p.deepDive;
+    document.getElementById('profile-superpower').textContent = p.superpower;
+    document.getElementById('profile-weakness').textContent = p.weakness;
+    document.getElementById('profile-role').textContent = p.groupRole;
+    document.getElementById('profile-motto').textContent = p.motto ? `"${p.motto}"` : '';
+
+    const traitsEl = document.getElementById('profile-traits');
+    traitsEl.innerHTML = '';
+    (p.traits || []).forEach(t => {
+      const span = document.createElement('span');
+      span.className = 'profile-trait';
+      span.textContent = t;
+      traitsEl.appendChild(span);
+    });
+
+    const hintsEl = document.getElementById('profile-hints');
+    hintsEl.innerHTML = '';
+    (p.hints || []).forEach(h => {
+      const div = document.createElement('div');
+      div.className = 'profile-hint';
+      div.textContent = h;
+      hintsEl.appendChild(div);
+    });
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    loading.innerHTML = `<span class="spin">⚠️</span>${err.message}`;
+  }
+}
+
+function closeProfile() {
+  document.getElementById('profile-modal').classList.remove('open');
 }
 
 // ═══════════════════════════════════════════════════════

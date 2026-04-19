@@ -109,7 +109,7 @@ async function callModel(apiKey, answers, attempt, model) {
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      max_tokens: 2000,
+      max_tokens: 3000,
       temperature: attempt > 1 ? 1.1 : 0.95,
       messages: [
         {
