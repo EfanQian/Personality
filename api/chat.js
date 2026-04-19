@@ -67,36 +67,47 @@ module.exports = async (req, res) => {
     { role: "user", content: userMessage },
   ];
 
-  try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://personality-playground.vercel.app",
-        "X-Title": "Personality Playground",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-3n-e4b-it:free",
-        max_tokens: 220,
-        messages,
-        seed: Date.now() % 99999,
-      }),
-    });
+  // Try models in order until one succeeds — free tier models are intermittent
+  const MODELS = [
+    "google/gemma-3n-e4b-it:free",
+    "google/gemma-3-4b-it:free",
+    "openai/gpt-oss-20b:free",
+    "openai/gpt-oss-120b:free",
+  ];
 
-    const data = await response.json();
+  let lastError = "All models unavailable, please try again";
 
-    if (!response.ok) {
-      throw new Error(data.error?.message || "OpenRouter API error: " + response.status);
+  for (const model of MODELS) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+          "HTTP-Referer": "https://personality-playground.vercel.app",
+          "X-Title": "Personality Playground",
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 220,
+          messages,
+          seed: Date.now() % 99999,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) { lastError = data.error?.message || "API error " + response.status; continue; }
+
+      const msg = data.choices?.[0]?.message;
+      const text = (msg?.content || msg?.reasoning || "").trim();
+      if (!text) { lastError = "Empty response"; continue; }
+
+      return res.json({ response: text, npcName: npc.name });
+    } catch (err) {
+      lastError = err.message;
     }
-
-    const msg = data.choices?.[0]?.message;
-    const text = (msg?.content || msg?.reasoning || "").trim();
-    if (!text) throw new Error("Empty response from model — please try again");
-
-    res.json({ response: text, npcName: npc.name });
-  } catch (err) {
-    console.error("Chat error:", err.message);
-    res.status(500).json({ error: "Chat failed: " + err.message });
   }
+
+  console.error("All models failed:", lastError);
+  res.status(500).json({ error: "Chat failed: " + lastError });
 };
