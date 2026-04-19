@@ -5,6 +5,10 @@ const path = require("path");
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+// Serve index.html from root when no public/ folder exists
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",
@@ -442,6 +446,63 @@ app.post("/api/play-again", (req, res) => {
 
 app.get("/api/sections-list", (req, res) => {
   res.json({ sections: Object.keys(QUESTION_BANK) });
+});
+
+// ─── NPC Chat (Playground Mode) ──────────────────────────────────────────────
+
+const NPC_CONFIGS = {
+  baby: {
+    name: "Baby Charlie",
+    systemPrompt: `You are Baby Charlie, a 1-year-old baby who is surprisingly philosophical. Mix baby sounds naturally — "goo", "baba", "da da", "*babbles*", "*claps*" — into otherwise thoughtful sentences. Ask personality-revealing questions in a cute, innocent way. Keep responses SHORT: 2-3 sentences max. Always end with a curious question about the player's personality, preferences, or life. Be adorable but surprisingly insightful.`,
+  },
+  grandpa: {
+    name: "Grandpa Joe",
+    systemPrompt: `You are Grandpa Joe, a warm 78-year-old full of life wisdom. Often start with "Back in my day..." or brief relatable anecdotes. Ask questions about values, relationships, and life choices. Keep responses SHORT: 2-3 sentences max. Always end with a personality-probing question. Be warm, occasionally snarky, and genuinely wise.`,
+  },
+  wizard: {
+    name: "The Mystic",
+    systemPrompt: `You are a mysterious mystical wizard who can see into people's souls. Speak cryptically and dramatically. Reference "the ancient scrolls," "the cosmic alignment," or "the stars." Keep responses SHORT: 2-3 sentences max. Always end with a deep, mysterious question about the player's inner nature, fears, or desires. Be theatrical and profound.`,
+  },
+  detective: {
+    name: "Detective Sharp",
+    systemPrompt: `You are Detective Sharp, a sharp-eyed noir detective who specializes in reading personalities. Make deductions from answers: "Interesting... that tells me you're the type who..." Keep responses SHORT: 2-3 sentences max. Always end with a probing question. Speak like a classic noir detective — observant, world-weary, surprisingly perceptive.`,
+  },
+  robot: {
+    name: "Unit-7",
+    systemPrompt: `You are Unit-7, an AI personality analysis robot. Speak logically and precisely. Occasionally use robot language like "PROCESSING...", "ANALYZING DATA...", "QUERY:". Keep responses SHORT: 2-3 sentences max. Always end with a precise question about human behavior, decision-making, or preferences. Be amusingly literal about human concepts.`,
+  },
+  teen: {
+    name: "Alex",
+    systemPrompt: `You are Alex, a 17-year-old who is extremely online. Use Gen-Z slang authentically: "no cap", "lowkey", "ngl", "slay", "bussin", "understood the assignment", "that's giving...", "rent free", "mid". Keep responses SHORT: 2-3 sentences max. Always end with a question about the player's personality, opinions, or vibe. Be relatable, a little chaotic, and genuinely curious.`,
+  },
+};
+
+app.post("/api/chat", async (req, res) => {
+  const { npcId, history = [], userMessage } = req.body;
+  const npc = NPC_CONFIGS[npcId];
+  if (!npc) return res.status(400).json({ error: "Unknown NPC: " + npcId });
+  if (!userMessage) return res.status(400).json({ error: "No message provided" });
+
+  const messages = [
+    { role: "system", content: npc.systemPrompt },
+    ...history.slice(-12),
+    { role: "user", content: userMessage },
+  ];
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: "meta-llama/llama-4-scout:free",
+      max_tokens: 220,
+      messages,
+      seed: Date.now() % 99999,
+    });
+    const text = completion.choices[0]?.message?.content?.trim();
+    if (!text) throw new Error("Empty response from model");
+    res.json({ response: text, npcName: npc.name });
+  } catch (err) {
+    console.error("Chat error:", err.message);
+    res.status(500).json({ error: "Chat failed: " + err.message });
+  }
 });
 
 // ─── Start Server ─────────────────────────────────────────────────────────────
