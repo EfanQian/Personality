@@ -423,61 +423,27 @@
       animation: spinEmoji 1.4s linear infinite;
     }
     @keyframes spinEmoji { to { transform: rotate(360deg); } }
-    #profile-nickname {
-      font-size: 1.85rem; font-weight: 800; text-align: center;
+    #profile-title {
+      font-size: 1.5rem; font-weight: 800; text-align: center;
       background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
       background-clip: text;
-      margin-bottom: 6px; line-height: 1.2;
+      margin-bottom: 20px; line-height: 1.2;
     }
-    #profile-vibe {
-      text-align: center; color: #94a3b8; font-size: 0.9rem;
-      margin-bottom: 18px; letter-spacing: 0.05em; text-transform: uppercase;
+    #profile-summary {
+      color: #cbd5e1; font-size: 1rem; line-height: 1.8;
+      text-align: center;
     }
-    #profile-traits {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      justify-content: center; margin-bottom: 22px;
-    }
-    .profile-trait {
-      background: rgba(99,102,241,0.18);
-      border: 1px solid rgba(99,102,241,0.35);
-      border-radius: 20px; padding: 5px 14px;
-      font-size: 0.8rem; color: #c4b5fd; font-weight: 600;
-    }
-    .profile-section { margin-bottom: 18px; }
-    .profile-section-label {
-      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: #6366f1; margin-bottom: 6px;
-    }
-    .profile-section-text {
-      color: #cbd5e1; font-size: 0.9rem; line-height: 1.65;
-    }
-    .profile-row {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-      margin-bottom: 18px;
-    }
-    .profile-pill {
-      background: rgba(255,255,255,0.04);
+
+    /* ── Progress Counter ────────────────────────────────── */
+    #progress {
+      position: fixed; top: 14px; right: 16px;
+      font-size: 0.75rem; color: rgba(255,255,255,0.45);
+      background: rgba(0,0,0,0.5);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; padding: 13px 16px;
-    }
-    #profile-hints {
-      display: flex; flex-direction: column; gap: 8px;
-      margin-top: 4px;
-    }
-    .profile-hint {
-      background: rgba(167,139,250,0.08);
-      border-left: 3px solid #a78bfa;
-      border-radius: 0 10px 10px 0;
-      padding: 8px 14px;
-      color: #94a3b8; font-size: 0.85rem; line-height: 1.5;
-    }
-    #profile-motto {
-      text-align: center; margin: 20px 0 4px;
-      font-size: 1.05rem; font-style: italic;
-      color: #e2e8f0;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      padding-top: 18px;
+      border-radius: 20px; padding: 5px 13px;
+      z-index: 50; pointer-events: none;
+      letter-spacing: 0.03em;
     }
   </style>
 </head>
@@ -524,6 +490,9 @@
 </div>
 <button id="talk-btn-mobile" onclick="mobileInteract()">💬 Talk</button>
 
+<!-- ── Progress Counter ───────────────────────────── -->
+<div id="progress">0 / 5 characters chatted</div>
+
 <!-- ── Reveal Button ──────────────────────────────── -->
 <button id="reveal-btn" onclick="analyzePersonality()">✨ Reveal My Personality</button>
 
@@ -533,36 +502,8 @@
     <button id="profile-close" onclick="closeProfile()">✕</button>
     <div id="profile-loading"><span class="spin">🔮</span>Analyzing your personality...</div>
     <div id="profile-content" style="display:none">
-      <div id="profile-nickname"></div>
-      <div id="profile-vibe"></div>
-      <div id="profile-traits"></div>
-      <div class="profile-section">
-        <div class="profile-section-label">About You</div>
-        <div class="profile-section-text" id="profile-about"></div>
-      </div>
-      <div class="profile-section">
-        <div class="profile-section-label">Deep Dive</div>
-        <div class="profile-section-text" id="profile-deepdive"></div>
-      </div>
-      <div class="profile-row">
-        <div class="profile-pill">
-          <div class="profile-section-label">Superpower</div>
-          <div class="profile-section-text" id="profile-superpower"></div>
-        </div>
-        <div class="profile-pill">
-          <div class="profile-section-label">Weakness</div>
-          <div class="profile-section-text" id="profile-weakness"></div>
-        </div>
-      </div>
-      <div class="profile-section">
-        <div class="profile-section-label">Group Role</div>
-        <div class="profile-section-text" id="profile-role"></div>
-      </div>
-      <div class="profile-section">
-        <div class="profile-section-label">How to Spot You</div>
-        <div id="profile-hints"></div>
-      </div>
-      <div id="profile-motto"></div>
+      <div id="profile-title">🔮 Your Personality</div>
+      <div id="profile-summary"></div>
     </div>
   </div>
 </div>
@@ -571,7 +512,7 @@
 <div id="intro">
   <div id="intro-card">
     <h1>🎭 Personality Playground</h1>
-    <p>Walk around and chat with the characters. Each one will ask you questions and respond to your answers with AI-powered personality insights.</p>
+    <p>Walk around and chat with 5 characters. Each one asks you one question — then get your personality revealed!</p>
     <div class="npc-preview">
       <span class="npc-chip">👶 Baby Charlie</span>
       <span class="npc-chip">👴 Grandpa Joe</span>
@@ -830,16 +771,26 @@ function openDialog(npcId) {
 
   dialogEl.style.display = 'flex';
   requestAnimationFrame(() => dialogEl.classList.add('open'));
+  dialogMsgs.innerHTML = '';
 
   // First visit: show opener immediately (no API call)
   if (histories[npcId].length === 0) {
     addMsg('npc', npc.opener);
     histories[npcId].push({ role: 'assistant', content: npc.opener });
+  } else {
+    // Replay existing messages
+    histories[npcId].forEach(m => addMsg(m.role === 'user' ? 'user' : 'npc', m.content));
   }
+
+  // Lock input if this NPC already had their one exchange
+  const alreadyAnswered = histories[npcId].some(m => m.role === 'user');
+  dialogInp.disabled = alreadyAnswered;
+  dialogSend.disabled = alreadyAnswered;
+  dialogInp.placeholder = alreadyAnswered ? 'Conversation complete ✓' : 'Type your reply...';
 
   toastEl.style.display = 'none';
   talkMobile.style.display = 'none';
-  setTimeout(() => dialogInp.focus(), 350);
+  if (!alreadyAnswered) setTimeout(() => dialogInp.focus(), 350);
 }
 
 function closeDialog() {
@@ -898,6 +849,13 @@ async function sendMsg() {
     chattedWith.add(npcId);
     checkAllChatted();
 
+    // Lock input — one exchange per NPC is all we need
+    chatBusy = false;
+    dialogInp.disabled = true;
+    dialogSend.disabled = true;
+    dialogInp.placeholder = 'Conversation complete ✓';
+    return;
+
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
     addMsg('npc', '⚠️ Something went wrong — ' + err.message);
@@ -914,8 +872,11 @@ async function sendMsg() {
 //  PERSONALITY ANALYSIS
 // ═══════════════════════════════════════════════════════
 function checkAllChatted() {
-  if (chattedWith.size >= Object.keys(NPCS).length) {
+  const count = chattedWith.size;
+  document.getElementById('progress').textContent = `${count} / 5 characters chatted`;
+  if (count >= 5) {
     document.getElementById('reveal-btn').style.display = 'block';
+    document.getElementById('progress').style.display = 'none';
   }
 }
 
@@ -928,12 +889,13 @@ async function analyzePersonality() {
   loading.style.display = 'block';
   content.style.display = 'none';
 
-  // Build Q&A pairs from all NPC conversation histories
+  // Collect the one Q&A exchange per NPC
   const responses = [];
   for (const [npcId, history] of Object.entries(histories)) {
     for (let i = 0; i < history.length - 1; i++) {
       if (history[i].role === 'assistant' && history[i + 1].role === 'user') {
         responses.push({ text: history[i].content, choice: history[i + 1].content });
+        break; // only first exchange per NPC
       }
     }
   }
@@ -947,34 +909,7 @@ async function analyzePersonality() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
 
-    const p = data.profile;
-    document.getElementById('profile-nickname').textContent = p.nickname;
-    document.getElementById('profile-vibe').textContent = p.characterVibe;
-    document.getElementById('profile-about').textContent = p.description;
-    document.getElementById('profile-deepdive').textContent = p.deepDive;
-    document.getElementById('profile-superpower').textContent = p.superpower;
-    document.getElementById('profile-weakness').textContent = p.weakness;
-    document.getElementById('profile-role').textContent = p.groupRole;
-    document.getElementById('profile-motto').textContent = p.motto ? `"${p.motto}"` : '';
-
-    const traitsEl = document.getElementById('profile-traits');
-    traitsEl.innerHTML = '';
-    (p.traits || []).forEach(t => {
-      const span = document.createElement('span');
-      span.className = 'profile-trait';
-      span.textContent = t;
-      traitsEl.appendChild(span);
-    });
-
-    const hintsEl = document.getElementById('profile-hints');
-    hintsEl.innerHTML = '';
-    (p.hints || []).forEach(h => {
-      const div = document.createElement('div');
-      div.className = 'profile-hint';
-      div.textContent = h;
-      hintsEl.appendChild(div);
-    });
-
+    document.getElementById('profile-summary').textContent = data.summary;
     loading.style.display = 'none';
     content.style.display = 'block';
   } catch (err) {

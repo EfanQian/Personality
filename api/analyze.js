@@ -12,23 +12,17 @@ async function readBody(req) {
   });
 }
 
-function clean(s) {
-  if (!s) return "";
-  return s.replace(/[\x00-\x1F\x7F]/g, " ").replace(/"/g, "'").trim();
-}
-
 function extractContent(rawText) {
-  // Try clean JSON parse first
-  let parsed = null;
-  try { parsed = JSON.parse(rawText); } catch (_) { /* fall through */ }
+  let parsedJson = null;
+  try { parsedJson = JSON.parse(rawText); } catch (_) { /* fall through */ }
 
-  if (parsed !== null) {
-    if (parsed.error) throw new Error("OpenRouter: " + (parsed.error.message || parsed.error.code || "error"));
-    const content = parsed.choices?.[0]?.message?.content;
+  if (parsedJson !== null) {
+    if (parsedJson.error) throw new Error("OpenRouter: " + (parsedJson.error.message || parsedJson.error.code || "error"));
+    const content = parsedJson.choices?.[0]?.message?.content;
     if (content) return content;
   }
 
-  // Manual char-by-char extraction from malformed/truncated JSON
+  // Manual extraction from malformed/truncated JSON
   const idx = rawText.lastIndexOf('"content":');
   if (idx === -1) return null;
   let pos = idx + 10;
@@ -54,75 +48,36 @@ function extractContent(rawText) {
   return out || null;
 }
 
-function parsePlainText(text) {
-  const get = (key) => {
-    const matches = [...text.matchAll(new RegExp("^" + key + ":\\s*(.+)", "gim"))];
-    if (!matches.length) return "";
-    return clean(matches[matches.length - 1][1]);
-  };
-  const traitsRaw = get("TRAITS");
-  return {
-    nickname:      get("NICKNAME")   || "",
-    traits:        traitsRaw ? traitsRaw.split(/[,|]+/).map(t => t.trim()).filter(Boolean).slice(0, 5) : [],
-    groupRole:     get("ROLE")       || "",
-    characterVibe: get("VIBE")       || "",
-    description:   get("ABOUT")      || "",
-    deepDive:      get("DEEPDIVE")   || "",
-    superpower:    get("SUPERPOWER") || "",
-    weakness:      get("WEAKNESS")   || "",
-    motto:         get("MOTTO")      || "",
-    hints:         [get("HINT1"), get("HINT2"), get("HINT3")].filter(Boolean),
-  };
-}
-
-function isBadOutput(profile) {
-  const bad = ["funny title", "placeholder", "[", "your answer", "fill in", "example", "nickname here", "trait here", "human crash", "crash test", "dummy", "clever funny"];
-  const nick = (profile.nickname || "").toLowerCase();
-  return !profile.nickname || bad.some(b => nick.includes(b));
-}
-
-async function callModel(apiKey, answers, attempt, model) {
+async function callModel(apiKey, answers, model) {
   const seed = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 
   const userMsg =
     "Session: " + seed + "\n\n" +
-    "A player just answered these personality quiz questions:\n\n" +
+    "A person just answered these personality questions in a game:\n\n" +
     answers + "\n\n" +
-    "Based ONLY on those specific answers, write their personality profile using this format:\n\n" +
-    "NICKNAME: (a unique, funny, specific 3-6 word phrase that fits THEIR answers)\n" +
-    "TRAITS: (5 comma-separated traits drawn from their actual answers)\n" +
-    "ROLE: (their specific role in a friend group, one sentence)\n" +
-    "VIBE: (2-4 words)\n" +
-    "ABOUT: (2-3 funny, specific sentences about this person)\n" +
-    "DEEPDIVE: (3-4 sentences going deeper on what makes them tick)\n" +
-    "SUPERPOWER: (one specific ability they have)\n" +
-    "WEAKNESS: (one specific flaw)\n" +
-    "MOTTO: (a short phrase they'd actually say)\n" +
-    "HINT1: (one behavioral clue about them)\n" +
-    "HINT2: (another clue)\n" +
-    "HINT3: (a third clue)\n\n" +
-    (attempt > 1 ? "The NICKNAME must be very creative and specific to their answers — not generic at all.\n\n" : "") +
-    "Start with NICKNAME:";
+    "Write a single paragraph (5-6 sentences, around 80-100 words) describing what type of person they are. " +
+    "Start with 'You are...' and write in second person throughout. " +
+    "Be warm, specific to their actual answers, a little playful, and genuinely insightful. " +
+    "Capture their core personality — how they think, how they relate to others, and what makes them unique.";
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
-      max_tokens: 3000,
-      temperature: attempt > 1 ? 1.1 : 0.95,
+      max_tokens: 300,
+      temperature: 0.95,
       messages: [
         {
           role: "system",
-          content: "You are a sharp, witty writer for a party game. You write personality profiles that are specific, funny, and based entirely on the quiz answers provided. You never use placeholder text or generic descriptions. Every profile is unique to the person's actual answers."
+          content: "You are a sharp, insightful writer for a personality game. Based on the quiz answers given, write a specific and engaging personality summary paragraph. Never use placeholder text. Be warm, a little playful, and always grounded in the actual answers provided."
         },
         { role: "user", content: userMsg }
       ],
     }),
   });
 
-  const rawText = await response.text();
-  return rawText;
+  return await response.text();
 }
 
 module.exports = async (req, res) => {
@@ -140,65 +95,45 @@ module.exports = async (req, res) => {
   const { responses } = body;
   if (!responses || !Array.isArray(responses)) return res.status(400).json({ error: "Missing responses" });
 
-  const answers = responses.map((r) => `- ${r.text}: ${r.choice}`).join("\n");
+  const answers = responses.map((r, i) => `${i + 1}. Q: ${r.text}\n   A: ${r.choice}`).join("\n\n");
 
   try {
-    let profile = null;
+    let summary = null;
     const models = await getFreeModels(apiKey);
 
-    // Outer loop: try each model; inner loop: retry same model up to 3x for bad output
-    outerLoop:
     for (const model of models) {
-      for (let attempt = 1; attempt <= 3; attempt++) {
-        let rawText;
-        try {
-          rawText = await callModel(apiKey, answers, attempt, model);
-        } catch (fetchErr) {
-          console.warn(`[analyze] model ${model} fetch error:`, fetchErr.message);
-          break;
-        }
-
-        // Parse error — check for rate limit before trying next model
-        let parsed;
-        try { parsed = JSON.parse(rawText); } catch (_) { parsed = null; }
-        if (parsed?.error?.code === 429) {
-          throw new Error(parsed.error.message || "Daily free request limit reached. Add credits at openrouter.ai or try again tomorrow.");
-        }
-
-        const content = extractContent(rawText);
-        if (!content) {
-          console.warn(`[analyze] model ${model} attempt ${attempt}: no content`);
-          if (attempt === 3) break; // try next model
-          continue;
-        }
-
-        const parsed = parsePlainText(content);
-        if (!isBadOutput(parsed)) {
-          profile = parsed;
-          break outerLoop;
-        }
-        console.warn(`[analyze] model ${model} attempt ${attempt}: bad output`);
-        if (attempt === 3) break; // try next model
+      let rawText;
+      try {
+        rawText = await callModel(apiKey, answers, model);
+      } catch (fetchErr) {
+        console.warn(`[analyze] model ${model} fetch error:`, fetchErr.message);
+        continue;
       }
+
+      let rateLimitCheck;
+      try { rateLimitCheck = JSON.parse(rawText); } catch (_) { rateLimitCheck = null; }
+      if (rateLimitCheck?.error?.code === 429) {
+        throw new Error(rateLimitCheck.error.message || "Daily free request limit reached. Add credits at openrouter.ai or try again tomorrow.");
+      }
+
+      let content;
+      try {
+        content = extractContent(rawText);
+      } catch (extractErr) {
+        throw extractErr;
+      }
+
+      if (content && content.trim().length > 40) {
+        summary = content.trim();
+        break;
+      }
+      console.warn(`[analyze] model ${model}: empty or too-short content`);
     }
 
-    if (!profile) throw new Error("All models produced unusable output");
-
-    const final = {
-      nickname:      profile.nickname      || "The Undeniable Force",
-      traits:        profile.traits.length  ? profile.traits : ["Unique", "Complex", "Surprising"],
-      groupRole:     profile.groupRole     || "The one who changes the dynamic",
-      characterVibe: profile.characterVibe || "Chaotic Good",
-      description:   profile.description   || "This person defies easy categorization.",
-      deepDive:      profile.deepDive      || "",
-      superpower:    profile.superpower    || "",
-      weakness:      profile.weakness      || "",
-      motto:         profile.motto         || "",
-      hints:         profile.hints,
-    };
+    if (!summary) throw new Error("All models produced unusable output");
 
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ profile: final }));
+    res.end(JSON.stringify({ summary }));
   } catch (err) {
     console.error("Analysis error:", err.message);
     res.status(500).json({ error: "Analysis failed: " + err.message });
