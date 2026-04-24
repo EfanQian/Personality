@@ -847,13 +847,24 @@ async function sendMsg() {
     histories[npcId].push({ role: 'user',      content: text });
     histories[npcId].push({ role: 'assistant', content: data.response });
     chattedWith.add(npcId);
-    checkAllChatted();
 
     // Lock input — one exchange per NPC is all we need
     chatBusy = false;
     dialogInp.disabled = true;
     dialogSend.disabled = true;
     dialogInp.placeholder = 'Conversation complete ✓';
+
+    const remaining = 5 - chattedWith.size;
+    if (remaining > 0) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'text-align:center;font-size:0.78rem;color:rgba(167,139,250,0.75);padding:10px 0 2px;';
+      hint.textContent = `Chat with ${remaining} more character${remaining !== 1 ? 's' : ''} to reveal your personality ✦`;
+      dialogMsgs.appendChild(hint);
+      dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
+    } else {
+      closeDialog();
+      setTimeout(() => analyzePersonality(), 400);
+    }
     return;
 
   } catch (err) {
@@ -874,10 +885,6 @@ async function sendMsg() {
 function checkAllChatted() {
   const count = chattedWith.size;
   document.getElementById('progress').textContent = `${count} / 5 characters chatted`;
-  if (count >= 5) {
-    document.getElementById('reveal-btn').style.display = 'block';
-    document.getElementById('progress').style.display = 'none';
-  }
 }
 
 async function analyzePersonality() {
