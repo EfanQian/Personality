@@ -516,7 +516,7 @@
 <div id="intro">
   <div id="intro-card">
     <h1>🎭 Personality Playground</h1>
-    <p>Answer 5 questions from any characters you like. Each character has 2 questions, so you can get them all from 3 people or spread it out — your choice!</p>
+    <p>Answer 5 questions however you like. Each character has 5 questions — get them all from one person, or explore different characters. You decide!</p>
     <div class="avatar-label">Choose your character</div>
     <div id="avatar-pick">
       <button class="av-btn selected" data-emoji="🧍">🧍</button>
@@ -559,8 +559,14 @@ const NPCS = {
     questions: [
       { text: "Goo goo! 👶 *reaches up excitedly* Baba baba! Oh! You smewll nice! Da da — if you could have ANY superpower, what would it be? Goo?",
         choices: ["🦸 The power to heal anyone", "⏰ Turn back time", "🧠 Read people's minds", "🌊 Control the forces of nature"] },
-      { text: "*babbles and claps* Goo! One more thing da da — when you feel sad, what do you do? *tilts head curiously*",
-        choices: ["🛌 Be alone and recharge quietly", "🤗 Talk to someone I trust", "🎮 Distract myself with something fun", "😤 Push through and keep going"] }
+      { text: "*babbles and claps* Goo! Da da — when you feel sad, what do you do? *tilts head curiously*",
+        choices: ["🛌 Be alone and recharge quietly", "🤗 Talk to someone I trust", "🎮 Distract myself with something fun", "😤 Push through and keep going"] },
+      { text: "*tugs your sleeve* Baba! If you could only keep ONE thing in your life, what would it be? Goo goo?",
+        choices: ["💖 The people I love", "🧠 My skills and knowledge", "🌍 My freedom to go anywhere", "💭 My memories and experiences"] },
+      { text: "*offers you a toy* Da da! What makes you laugh the most? *giggles adorably*",
+        choices: ["😂 Silly absurd humor, the weirder the better", "🤝 Inside jokes with close friends", "😬 Awkward situations — cringe is funny", "🎭 Clever wordplay and wit"] },
+      { text: "*yawns dramatically* Baba... one more! What kind of person do you want to be? Goo? *stares with big eyes*",
+        choices: ["💪 Someone strong who protects others", "🌟 Someone who leaves a real impact", "😊 Someone who makes people feel good", "🎯 Someone who achieves big things"] }
     ]
   },
   grandpa: {
@@ -568,8 +574,14 @@ const NPCS = {
     questions: [
       { text: "Well, hello there! *adjusts glasses* Don't get many visitors these days. So tell me, young one: what do you value most in a friendship?",
         choices: ["🤝 Loyalty — someone who always shows up", "😂 Making each other laugh constantly", "🗣️ Brutal honesty, no sugarcoating", "🤫 Giving each other space, no questions"] },
-      { text: "*leans on cane* Good answer. Now — when things go badly wrong in your life, what's your first instinct?",
-        choices: ["🔧 Fix it immediately, no wallowing", "📞 Call someone for advice", "🤔 Think it through alone first", "🌊 Let yourself feel it before acting"] }
+      { text: "*leans on cane* Good answer. Now — when things go badly wrong, what's your first instinct?",
+        choices: ["🔧 Fix it immediately, no wallowing", "📞 Call someone for advice", "🤔 Think it through alone first", "🌊 Let yourself feel it before acting"] },
+      { text: "*settles into chair* Back in my day we had to earn everything. Tell me — what does success mean to you?",
+        choices: ["💰 Financial security and stability", "🎯 Achieving something I set out to do", "❤️ Deep relationships and love", "🕊️ Peace of mind and contentment"] },
+      { text: "*nods slowly* Mm. What's the biggest lesson life has taught you so far?",
+        choices: ["⏰ Time is the most precious thing", "👥 People matter more than things", "🧗 You're stronger than you think", "🌱 Everything is always changing"] },
+      { text: "*looks out the window* Last one. What would the younger version of you be surprised to know about you now?",
+        choices: ["😮 How much I've changed", "😌 How much I actually stayed the same", "💡 What I ended up caring about most", "🏆 What I actually managed to accomplish"] }
     ]
   },
   wizard: {
@@ -578,7 +590,13 @@ const NPCS = {
       { text: "*peers into crystal ball, eyes wide* The stars whispered of your approach. Tell me — what is the one thing in life you fear most?",
         choices: ["💔 Losing someone I love deeply", "🌫️ Being completely forgotten", "🚪 Running out of time", "🌀 Never finding my purpose"] },
       { text: "*the crystal ball swirls with light* The vision deepens... where do you feel most like yourself?",
-        choices: ["🌊 Somewhere vast and open — ocean or sky", "🏙️ In the energy of a busy city", "🌲 Alone in nature, completely quiet", "👥 Surrounded by people I love"] }
+        choices: ["🌊 Somewhere vast and open — ocean or sky", "🏙️ In the energy of a busy city", "🌲 Alone in nature, completely quiet", "👥 Surrounded by people I love"] },
+      { text: "*traces symbols in the air* The ancient scrolls ask... what do you think happens after we die?",
+        choices: ["✨ Something beautiful we can't imagine", "♻️ We return — energy never truly ends", "🌑 Nothing — and that's okay", "🤷 I genuinely have no idea"] },
+      { text: "*the candles flicker* Tell me — do you believe people can truly change?",
+        choices: ["✅ Yes, with real effort anyone can", "⚖️ Yes, but only the core stuff stays", "🔒 Mostly no — nature wins in the end", "🌱 Only when life forces them to"] },
+      { text: "*closes eyes* Last vision. What does your soul need most right now?",
+        choices: ["🕊️ Rest and stillness", "🔥 Excitement and challenge", "🤝 Real connection with others", "🗺️ A clear direction forward"] }
     ]
   },
   detective: {
@@ -586,8 +604,14 @@ const NPCS = {
     questions: [
       { text: "*closes notebook, squints* I've been watching you cross the plaza. Very telling. What's the very first thing you do every single morning?",
         choices: ["📱 Immediately check my phone", "☕ Make coffee or tea, always", "🌞 Stretch, breathe, ease into it", "📋 Start planning the whole day"] },
-      { text: "*taps pen thoughtfully* Mm. And when you're in a group, which role do you naturally slip into?",
-        choices: ["🎯 The one who makes decisions", "🤝 The peacekeeper keeping it smooth", "💡 The one with the unexpected idea", "👁️ The quiet observer who misses nothing"] }
+      { text: "*taps pen thoughtfully* And when you're in a group, which role do you naturally slip into?",
+        choices: ["🎯 The one who makes decisions", "🤝 The peacekeeper keeping it smooth", "💡 The one with the unexpected idea", "👁️ The quiet observer who misses nothing"] },
+      { text: "*leans forward* Interesting. Someone betrays your trust. What do you do?",
+        choices: ["🚪 Cut them off — trust is non-negotiable", "🗣️ Confront them directly and honestly", "⏳ Give them space, then decide", "🤔 Try to understand why first"] },
+      { text: "*scribbles notes* What's the one thing people consistently misunderstand about you?",
+        choices: ["😤 They think I'm cold — I just think carefully", "😊 They think I'm fine — I hide things well", "🧠 They think I'm simple — I'm more complex than I look", "🎭 They think I'm serious — I'm actually quite funny"] },
+      { text: "*closes the notebook* Final question. What does your ideal day look like?",
+        choices: ["🚀 Packed — I want to feel productive", "⚖️ Balanced — some work, some play", "🛋️ Slow — I want to actually rest", "🎲 Spontaneous — let the day decide"] }
     ]
   },
   teen: {
@@ -595,17 +619,29 @@ const NPCS = {
     questions: [
       { text: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr, I won't judge ngl",
         choices: ["😤 Being fake online but 'nice' irl", "🕰️ Chronically late to everything", "🗣️ Never listening, just waiting to talk", "😒 Rude to people in service jobs"] },
-      { text: "ok ok that tracks lol. one more — what's your go-to when you have a completely free day with zero plans?",
-        choices: ["🛋️ Fully decompress, nothing scheduled", "🌍 Spontaneous adventure, go somewhere new", "📱 Deep dive into whatever I'm obsessed with", "👯 Round up friends and make it a whole thing"] }
+      { text: "ok ok that tracks lol. what's your go-to when you have a completely free day with zero plans?",
+        choices: ["🛋️ Fully decompress, nothing scheduled", "🌍 Spontaneous adventure, go somewhere new", "📱 Deep dive into whatever I'm obsessed with", "👯 Round up friends and make it a whole thing"] },
+      { text: "slay. ok real talk — what's your love language? be honest lol",
+        choices: ["🎁 Gift giving or receiving", "⏰ Quality time, fully present", "🤗 Physical touch — hugs etc", "🗣️ Words of affirmation all day"] },
+      { text: "omg interesting!! what's your villain era trigger? like what would actually make you snap? no judgment lol",
+        choices: ["😤 Being disrespected in front of others", "💔 Someone betraying someone I care about", "🔁 The same mistake happening over and over", "🚫 Being completely ignored or dismissed"] },
+      { text: "ok last one bestie — hot take: what's actually overrated?",
+        choices: ["🎉 Big social events and parties", "💼 Traditional 9-5 career paths", "📱 Being constantly online and reachable", "🏆 Chasing status and clout"] }
     ]
   },
   robot: {
     x: 948, y: 472, name: "Unit-7", emoji: "🤖", color: "#06b6d4",
     questions: [
-      { text: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUERY 1 OF 2: What is your primary motivation when facing a difficult decision?",
+      { text: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUERY 1: What is your primary motivation when facing a difficult decision?",
         choices: ["🔍 Pure logic and available data", "💖 What my gut feeling says", "👥 What's best for everyone", "🌱 What serves long-term growth"] },
-      { text: "PROCESSING... QUERY 2 OF 2: In your social group, what function do you most frequently perform?",
-        choices: ["⚡ Generating energy and excitement", "🧩 Solving problems others can't crack", "🛡️ Protecting the group's emotional wellbeing", "🗺️ Planning and organizing everything"] }
+      { text: "PROCESSING... QUERY 2: In your social group, what function do you most frequently perform?",
+        choices: ["⚡ Generating energy and excitement", "🧩 Solving problems others can't crack", "🛡️ Protecting the group's emotional wellbeing", "🗺️ Planning and organizing everything"] },
+      { text: "DATA LOGGED. QUERY 3: When you encounter a problem you cannot solve, your response is:",
+        choices: ["🔄 Try every possible approach systematically", "🤝 Immediately seek outside help", "💤 Step away and return with fresh perspective", "😤 Push harder until something breaks"] },
+      { text: "ANALYZING PATTERNS... QUERY 4: Which best describes your relationship with rules?",
+        choices: ["✅ Follow them — they exist for good reasons", "⚖️ Follow the spirit, not always the letter", "🔍 Evaluate each rule on its own merits", "🚀 Rules are suggestions for people without vision"] },
+      { text: "SCAN NEARING COMPLETION. FINAL QUERY 5: What is your primary fear regarding your future?",
+        choices: ["📉 Failing to reach my potential", "😔 Ending up alone", "🔁 Getting stuck in a life that doesn't fit", "💨 Wasting the time I have"] }
     ]
   }
 };
