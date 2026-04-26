@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Personality Playground</title>
   <style>
-    /* ── Reset ─────────────────────────────────────────────── */
+    /* ── Reset ──────────────────────────────────────────── */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: #030308; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
 
-    /* ── World Container ────────────────────────────────────── */
+    /* ── World ──────────────────────────────────────────── */
     #world-wrap { position: fixed; inset: 0; background: #030308; }
     #world {
       position: absolute;
@@ -23,57 +23,60 @@
         linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
       background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
       overflow: hidden;
+      cursor: crosshair;
     }
-    /* Central plaza ring */
     #world::before {
       content: '';
-      position: absolute;
-      left: 50%; top: 50%;
+      position: absolute; left: 50%; top: 50%;
       transform: translate(-50%, -50%);
-      width: 320px; height: 220px;
-      border-radius: 50%;
+      width: 320px; height: 220px; border-radius: 50%;
       background: radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 70%);
       pointer-events: none;
     }
 
-    /* ── Player ─────────────────────────────────────────────── */
+    /* ── Player ─────────────────────────────────────────── */
     #player {
-      position: absolute;
-      width: 42px; height: 42px;
-      font-size: 1.9rem;
-      text-align: center; line-height: 42px;
-      z-index: 10;
+      position: absolute; width: 42px; height: 42px;
+      font-size: 1.9rem; text-align: center; line-height: 42px;
+      z-index: 10; pointer-events: none;
       filter: drop-shadow(0 0 12px rgba(255,255,255,0.45));
-      pointer-events: none;
+      transition: filter 0.3s;
     }
 
-    /* ── NPC ─────────────────────────────────────────────────── */
+    /* ── NPC ─────────────────────────────────────────────── */
     .npc {
-      position: absolute;
-      width: 72px;
-      text-align: center;
-      cursor: pointer;
-      z-index: 5;
+      position: absolute; width: 72px;
+      text-align: center; cursor: pointer; z-index: 5;
     }
     .npc-aura {
-      position: absolute;
-      width: 110px; height: 110px;
-      border-radius: 50%;
+      position: absolute; width: 110px; height: 110px; border-radius: 50%;
       background: radial-gradient(circle, var(--c) 0%, transparent 70%);
-      opacity: 0.1;
-      top: -19px; left: -19px;
-      transition: opacity 0.5s;
-      pointer-events: none;
+      opacity: 0.1; top: -19px; left: -19px;
+      transition: opacity 0.5s; pointer-events: none;
     }
     .npc.near .npc-aura { opacity: 0.5; animation: auraPulse 1.8s ease-in-out infinite; }
+    .npc-sprite-wrap {
+      position: relative; display: inline-block;
+    }
     .npc-sprite {
-      font-size: 2.5rem;
-      display: block;
+      font-size: 2.5rem; display: block;
       animation: npcBob 2.4s ease-in-out infinite;
       filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55));
-      transition: transform 0.2s;
+      transition: transform 0.2s, filter 0.3s;
     }
     .npc:hover .npc-sprite { transform: scale(1.12); }
+    .npc.done .npc-sprite { filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55)) drop-shadow(0 0 10px rgba(34,197,94,0.45)); }
+    .npc-badge {
+      position: absolute; top: -5px; right: -8px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #22c55e; color: #fff;
+      font-size: 0.55rem; font-weight: 900;
+      display: none; align-items: center; justify-content: center;
+      border: 2px solid #0c0c20;
+      box-shadow: 0 2px 8px rgba(34,197,94,0.5);
+      animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .npc.done .npc-badge { display: flex; }
     .npc-name {
       font-size: 0.65rem; font-weight: 700;
       color: rgba(255,255,255,0.7);
@@ -83,47 +86,65 @@
     }
     .npc-hint {
       display: none;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid var(--c);
-      border-radius: 8px;
-      padding: 3px 9px;
-      font-size: 0.62rem;
-      color: #fff;
-      margin-top: 4px;
-      animation: popIn 0.25s ease;
-      white-space: nowrap;
+      background: rgba(0,0,0,0.82); border: 1px solid var(--c);
+      border-radius: 8px; padding: 3px 9px;
+      font-size: 0.62rem; color: #fff;
+      margin-top: 4px; animation: popIn 0.25s ease; white-space: nowrap;
     }
     .npc-hint kbd {
-      background: var(--c);
-      color: #000; border-radius: 3px;
+      background: var(--c); color: #000; border-radius: 3px;
       padding: 1px 5px; font-size: 0.58rem; font-weight: 800;
     }
     .npc.near .npc-hint { display: inline-block; }
+    .npc.done .npc-hint { display: none !important; }
 
-    /* ── Decor ───────────────────────────────────────────────── */
-    .decor {
-      position: absolute;
-      pointer-events: none; z-index: 2;
-      filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
-    }
+    /* ── Decor ───────────────────────────────────────────── */
+    .decor { position: absolute; pointer-events: none; z-index: 2; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); }
     .decor-tree   { font-size: 2.1rem; z-index: 3; }
     .decor-lamp   { font-size: 1.4rem; animation: lampGlow 3.5s ease-in-out infinite; z-index: 4; }
     .decor-flower { font-size: 1rem; }
     .decor-rock   { font-size: 1.1rem; }
     .decor-star   { animation: twinkle 2s ease-in-out infinite; }
 
-    /* ── Dialog Panel ────────────────────────────────────────── */
+    /* ── Move Target ─────────────────────────────────────── */
+    #move-target {
+      position: absolute; width: 28px; height: 28px;
+      border-radius: 50%; pointer-events: none; z-index: 8;
+      transform: translate(-50%, -50%); display: none;
+    }
+    #move-target::before {
+      content: '';
+      position: absolute; inset: 0; border-radius: 50%;
+      border: 2px solid rgba(99,102,241,0.8);
+      animation: targetRing 0.55s ease-out forwards;
+    }
+    #move-target::after {
+      content: '×';
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(99,102,241,0.9); font-size: 1rem; font-weight: 700;
+      animation: targetFade 0.55s ease-out forwards;
+    }
+    @keyframes targetRing {
+      0%  { transform: scale(0.3); opacity: 1; }
+      100%{ transform: scale(2);   opacity: 0; }
+    }
+    @keyframes targetFade {
+      0%  { opacity: 1; }
+      100%{ opacity: 0; }
+    }
+
+    /* ── Dialog ──────────────────────────────────────────── */
     #dialog {
       position: fixed; bottom: 0; left: 0; right: 0;
-      height: 265px;
-      background: rgba(7, 7, 18, 0.97);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      height: 310px;
+      background: rgba(6, 6, 16, 0.97);
+      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
       border-top: 2px solid var(--dc, #6366f1);
       display: none; flex-direction: column;
       z-index: 200;
       transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
     }
     #dialog.open { transform: translateY(0); }
 
@@ -139,19 +160,19 @@
       border: 2px solid var(--dc, #6366f1);
       display: flex; align-items: center; justify-content: center;
       font-size: 1.5rem; flex-shrink: 0;
-      transition: border-color 0.3s;
     }
-    #dialog-npc-name {
-      font-size: 1rem; font-weight: 700;
-      color: var(--dc, #a78bfa); flex: 1;
-      transition: color 0.3s;
+    #dialog-npc-name { font-size: 1rem; font-weight: 700; color: var(--dc, #a78bfa); flex: 1; }
+    #dialog-count {
+      font-size: 0.72rem; font-weight: 700;
+      color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.07);
+      border-radius: 20px; padding: 3px 10px;
+      letter-spacing: 0.05em; white-space: nowrap;
     }
     #dialog-close {
-      background: none; border: none;
-      color: #4b5563; font-size: 1.15rem;
-      cursor: pointer; padding: 4px 9px;
-      border-radius: 7px;
-      transition: color 0.2s, background 0.2s;
+      background: none; border: none; color: #4b5563;
+      font-size: 1.15rem; cursor: pointer; padding: 4px 9px;
+      border-radius: 7px; transition: color 0.2s, background 0.2s;
     }
     #dialog-close:hover { color: #e8e8f0; background: rgba(255,255,255,0.09); }
 
@@ -161,34 +182,32 @@
       scroll-behavior: smooth;
     }
     #dialog-msgs::-webkit-scrollbar { width: 3px; }
-    #dialog-msgs::-webkit-scrollbar-track { background: transparent; }
     #dialog-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 
     .msg {
-      max-width: 78%; padding: 8px 13px;
-      border-radius: 14px; font-size: 0.875rem; line-height: 1.5;
+      max-width: 80%; padding: 9px 14px;
+      border-radius: 15px; font-size: 0.88rem; line-height: 1.55;
       animation: msgPop 0.18s ease;
     }
     .msg-npc {
       align-self: flex-start;
-      background: rgba(99,102,241,0.14);
-      border: 1px solid rgba(99,102,241,0.28);
-      color: #e2e8f0;
-      border-bottom-left-radius: 4px;
+      background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+      color: #e2e8f0; border-bottom-left-radius: 4px;
     }
     .msg-user {
       align-self: flex-end;
-      background: rgba(255,255,255,0.09);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: #cbd5e1;
-      border-bottom-right-radius: 4px;
+      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
+      color: #cbd5e1; border-bottom-right-radius: 4px;
+    }
+    .msg.typing::after {
+      content: '▋'; display: inline-block;
+      animation: blink 0.5s ease infinite;
+      opacity: 0.7; margin-left: 2px; font-size: 0.75em;
     }
     .msg-loading {
-      align-self: flex-start;
-      display: flex; align-items: center; gap: 5px;
+      align-self: flex-start; display: flex; align-items: center; gap: 5px;
       padding: 10px 14px;
-      background: rgba(99,102,241,0.1);
-      border: 1px solid rgba(99,102,241,0.2);
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
       border-radius: 14px; border-bottom-left-radius: 4px;
     }
     .msg-loading span {
@@ -198,211 +217,129 @@
     }
     .msg-loading span:nth-child(2) { animation-delay: 0.2s; }
     .msg-loading span:nth-child(3) { animation-delay: 0.4s; }
+    .msg-hint {
+      align-self: center; text-align: center;
+      font-size: 0.75rem; color: rgba(167,139,250,0.65);
+      padding: 6px 0 2px; font-style: italic;
+    }
 
-    #dialog-input-row {
-      display: flex; gap: 8px;
-      padding: 8px 16px max(12px, env(safe-area-inset-bottom, 12px));
+    /* ── Choice Buttons ──────────────────────────────────── */
+    #choice-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 7px; padding: 8px 14px 12px;
       flex-shrink: 0;
     }
-    #dialog-input {
-      flex: 1;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 10px; color: #e8e8f0;
-      padding: 10px 14px; font-size: 0.9rem;
-      font-family: inherit;
-      transition: border-color 0.2s;
+    #choice-grid.hidden { display: none; }
+    .choice-btn {
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.28);
+      border-radius: 11px; color: #e2e8f0;
+      padding: 10px 12px; font-size: 0.8rem;
+      font-family: inherit; cursor: pointer;
+      text-align: left; line-height: 1.35;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      animation: msgPop 0.22s ease both;
     }
-    #dialog-input:focus { outline: none; border-color: var(--dc, #6366f1); }
-    #dialog-input::placeholder { color: #374151; }
-    #dialog-input:disabled { opacity: 0.5; }
-    #dialog-send {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border: none; border-radius: 10px; color: #fff;
-      padding: 10px 18px; font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
-      white-space: nowrap;
-    }
-    #dialog-send:hover { opacity: 0.88; transform: scale(1.04); }
-    #dialog-send:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .choice-btn:nth-child(2) { animation-delay: 0.04s; }
+    .choice-btn:nth-child(3) { animation-delay: 0.08s; }
+    .choice-btn:nth-child(4) { animation-delay: 0.12s; }
+    .choice-btn:hover { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.5); transform: translateY(-2px); }
+    .choice-btn:active { transform: scale(0.96); }
 
-    /* ── Interact Toast ──────────────────────────────────────── */
+    /* ── Done row ────────────────────────────────────────── */
+    #done-row {
+      display: none; align-items: center; justify-content: center;
+      padding: 8px 14px 12px;
+      font-size: 0.8rem; color: rgba(255,255,255,0.3);
+      flex-shrink: 0; gap: 8px;
+    }
+    #done-row.visible { display: flex; }
+
+    /* ── Toast ───────────────────────────────────────────── */
     #toast {
       position: fixed; bottom: 20px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.82);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 20px;
-      padding: 7px 18px;
+      background: rgba(0,0,0,0.82); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 20px; padding: 7px 18px;
       font-size: 0.8rem; color: #e8e8f0;
-      z-index: 150; display: none;
-      pointer-events: none;
+      z-index: 150; display: none; pointer-events: none;
       animation: fadeUp 0.3s ease;
     }
-    #toast kbd {
-      background: rgba(255,255,255,0.18);
-      border-radius: 4px; padding: 1px 6px;
-      font-size: 0.75rem; font-weight: 700;
-    }
+    #toast kbd { background: rgba(255,255,255,0.18); border-radius: 4px; padding: 1px 6px; font-size: 0.75rem; font-weight: 700; }
 
-    /* ── Controls Hint ───────────────────────────────────────── */
+    /* ── Hint Bar ────────────────────────────────────────── */
     #hint-bar {
       position: fixed; bottom: 14px; left: 16px;
-      font-size: 0.68rem; color: rgba(255,255,255,0.28);
+      font-size: 0.68rem; color: rgba(255,255,255,0.25);
       line-height: 1.9; z-index: 50; pointer-events: none;
     }
-    #hint-bar span {
-      background: rgba(255,255,255,0.09);
-      border-radius: 4px; padding: 1px 5px;
-      font-family: monospace;
-    }
+    #hint-bar span { background: rgba(255,255,255,0.09); border-radius: 4px; padding: 1px 5px; font-family: monospace; }
 
-    /* ── Title / Intro ───────────────────────────────────────── */
-    #intro {
-      position: fixed; inset: 0;
-      background: rgba(3,3,8,0.93);
-      z-index: 300;
-      display: flex; align-items: center; justify-content: center;
-      animation: fadeIn 0.3s ease;
-    }
-    #intro-card {
-      background: #12122a;
-      border: 1px solid #2a2a4a;
-      border-radius: 20px;
-      padding: 40px 44px;
-      max-width: 420px; width: 90%;
-      text-align: center;
-    }
-    #intro-card h1 {
-      font-size: 2rem; font-weight: 800;
-      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 10px;
-    }
-    #intro-card p { color: #94a3b8; font-size: 0.95rem; line-height: 1.7; margin-bottom: 8px; }
-    #intro-card .npc-preview {
-      display: flex; flex-wrap: wrap; justify-content: center;
-      gap: 8px; margin: 18px 0;
-    }
-    #intro-card .npc-chip {
+    /* ── Virtual Joystick ────────────────────────────────── */
+    #joystick-base {
+      position: fixed; width: 120px; height: 120px;
+      border-radius: 50%; display: none; pointer-events: none; z-index: 140;
       background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 20px;
-      padding: 5px 12px; font-size: 0.82rem; color: #c4b5fd;
+      border: 2px solid rgba(255,255,255,0.18);
+      backdrop-filter: blur(4px);
     }
-    #start-btn {
-      display: inline-block;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff; border: none; border-radius: 12px;
-      padding: 14px 36px; font-size: 1rem; font-weight: 700;
-      cursor: pointer; margin-top: 10px;
-      transition: transform 0.15s, opacity 0.15s;
+    #joystick-knob {
+      position: absolute; width: 50px; height: 50px; border-radius: 50%;
+      background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.45);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      transition: background 0.1s;
     }
-    #start-btn:hover { transform: translateY(-2px); opacity: 0.9; }
 
-    /* ── Mobile D-Pad ────────────────────────────────────────── */
-    #dpad { display: none; position: fixed; bottom: 22px; right: 18px; z-index: 150; gap: 3px; flex-direction: column; align-items: center; }
-    .drow { display: flex; gap: 3px; }
-    .dbtn {
-      width: 48px; height: 48px;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 10px; color: #fff; font-size: 1.1rem;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: background 0.1s; touch-action: none;
-    }
-    .dbtn:active { background: rgba(255,255,255,0.28); }
-    .dblank { width: 48px; height: 48px; }
+    /* ── Talk Button (mobile) ────────────────────────────── */
     #talk-btn-mobile {
-      display: none;
-      position: fixed; bottom: 162px; right: 18px;
+      display: none; position: fixed; bottom: 22px; right: 18px;
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border: none; border-radius: 12px;
-      color: #fff; padding: 12px 20px;
-      font-size: 0.9rem; font-weight: 700;
+      border: none; border-radius: 14px; color: #fff;
+      padding: 13px 20px; font-size: 0.9rem; font-weight: 700;
       cursor: pointer; z-index: 150;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
     }
     @media (pointer: coarse) {
-      #dpad { display: flex; }
       #talk-btn-mobile { display: block; }
       #hint-bar { display: none; }
+      #dialog { height: min(340px, 48vh); }
+      .choice-btn { padding: 12px; font-size: 0.82rem; }
     }
 
-    /* ── Keyframes ───────────────────────────────────────────── */
-    @keyframes npcBob {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
+    /* ── Progress Counter ────────────────────────────────── */
+    #progress {
+      position: fixed; top: 14px; right: 16px;
+      font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.45);
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 5px 14px; z-index: 50; pointer-events: none;
+      letter-spacing: 0.04em; transition: opacity 0.4s;
     }
-    @keyframes auraPulse {
-      0%,100% { transform: scale(1);    opacity: 0.5; }
-      50%      { transform: scale(1.2); opacity: 0.7; }
-    }
-    @keyframes lampGlow {
-      0%,100% { filter: drop-shadow(0 0 5px rgba(255,180,50,.6)); }
-      50%     { filter: drop-shadow(0 0 12px rgba(255,210,80,.95)); }
-    }
-    @keyframes twinkle {
-      0%,100% { opacity: .25; transform: scale(.8); }
-      50%     { opacity: .9;  transform: scale(1.3); }
-    }
-    @keyframes dotBounce {
-      0%,100% { transform: translateY(0);   opacity: .5; }
-      50%     { transform: translateY(-5px); opacity: 1; }
-    }
-    @keyframes msgPop {
-      from { transform: scale(.9) translateY(4px); opacity: 0; }
-      to   { transform: scale(1)  translateY(0);   opacity: 1; }
-    }
-    @keyframes popIn {
-      from { transform: translateY(-6px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-    @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes fadeUp  { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-    /* ── Reveal Button ──────────────────────────────────────── */
+    /* ── Reveal Button ───────────────────────────────────── */
     #reveal-btn {
-      display: none;
-      position: fixed; bottom: 20px; left: 50%;
+      display: none; position: fixed; bottom: 20px; left: 50%;
       transform: translateX(-50%);
       background: linear-gradient(135deg, #a78bfa, #6366f1, #f472b6);
-      background-size: 200% 200%;
-      animation: gradShift 3s ease infinite;
-      border: none; border-radius: 24px;
-      color: #fff; padding: 13px 32px;
-      font-size: 0.95rem; font-weight: 700;
-      cursor: pointer; z-index: 160;
-      box-shadow: 0 0 24px rgba(167,139,250,0.5);
-      letter-spacing: 0.02em;
+      background-size: 200% 200%; animation: gradShift 3s ease infinite;
+      border: none; border-radius: 24px; color: #fff; padding: 14px 34px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer; z-index: 160;
+      box-shadow: 0 0 28px rgba(167,139,250,0.55); letter-spacing: 0.02em;
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    #reveal-btn:hover { transform: translateX(-50%) translateY(-2px); box-shadow: 0 0 36px rgba(167,139,250,0.7); }
-    @keyframes gradShift {
-      0%,100% { background-position: 0% 50%; }
-      50%      { background-position: 100% 50%; }
-    }
+    #reveal-btn:hover { transform: translateX(-50%) translateY(-2px); box-shadow: 0 0 40px rgba(167,139,250,0.75); }
 
-    /* ── Profile Modal ──────────────────────────────────────── */
+    /* ── Profile Modal ───────────────────────────────────── */
     #profile-modal {
-      display: none;
-      position: fixed; inset: 0;
-      background: rgba(3,3,8,0.92);
-      backdrop-filter: blur(14px);
-      z-index: 400;
-      align-items: center; justify-content: center;
+      display: none; position: fixed; inset: 0;
+      background: rgba(3,3,8,0.92); backdrop-filter: blur(14px);
+      z-index: 400; align-items: center; justify-content: center;
       animation: fadeIn 0.3s ease;
     }
     #profile-modal.open { display: flex; }
     #profile-card {
-      background: #0e0e22;
-      border: 1px solid rgba(167,139,250,0.3);
-      border-radius: 22px;
-      padding: 36px 40px;
-      max-width: 560px; width: 92%;
-      max-height: 88vh; overflow-y: auto;
-      position: relative;
-      box-shadow: 0 0 60px rgba(99,102,241,0.2);
+      background: #0e0e22; border: 1px solid rgba(167,139,250,0.3);
+      border-radius: 24px; padding: 40px 44px;
+      max-width: 520px; width: 92%; max-height: 88vh; overflow-y: auto;
+      position: relative; box-shadow: 0 0 70px rgba(99,102,241,0.2);
     }
     #profile-card::-webkit-scrollbar { width: 3px; }
     #profile-card::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 2px; }
@@ -410,109 +347,152 @@
       position: absolute; top: 16px; right: 16px;
       background: rgba(255,255,255,0.07); border: none;
       color: #94a3b8; font-size: 1rem; cursor: pointer;
-      border-radius: 8px; padding: 5px 10px;
-      transition: background 0.2s, color 0.2s;
+      border-radius: 8px; padding: 5px 10px; transition: background 0.2s, color 0.2s;
     }
     #profile-close:hover { background: rgba(255,255,255,0.14); color: #e2e8f0; }
     #profile-loading {
-      text-align: center; padding: 40px 0; color: #94a3b8;
-      font-size: 0.95rem;
+      text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.95rem;
     }
-    #profile-loading .spin {
-      font-size: 2.5rem; display: block; margin-bottom: 16px;
-      animation: spinEmoji 1.4s linear infinite;
-    }
-    @keyframes spinEmoji { to { transform: rotate(360deg); } }
+    #profile-loading .spin { font-size: 2.5rem; display: block; margin-bottom: 16px; animation: spinEmoji 1.4s linear infinite; }
     #profile-title {
       font-size: 1.5rem; font-weight: 800; text-align: center;
       background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 20px; line-height: 1.2;
+      background-clip: text; margin-bottom: 20px; line-height: 1.2;
     }
     #profile-summary {
-      color: #cbd5e1; font-size: 1rem; line-height: 1.8;
-      text-align: center;
+      color: #cbd5e1; font-size: 1rem; line-height: 1.85; text-align: center;
     }
+    #profile-summary .word { display: inline; opacity: 0; animation: wordFade 0.3s ease forwards; }
+    #profile-restart {
+      display: block; margin: 28px auto 0;
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 12px; color: #94a3b8; padding: 10px 28px;
+      font-size: 0.85rem; font-family: inherit; cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    #profile-restart:hover { background: rgba(255,255,255,0.12); color: #e2e8f0; }
 
-    /* ── Progress Counter ────────────────────────────────── */
-    #progress {
-      position: fixed; top: 14px; right: 16px;
-      font-size: 0.75rem; color: rgba(255,255,255,0.45);
-      background: rgba(0,0,0,0.5);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 5px 13px;
-      z-index: 50; pointer-events: none;
-      letter-spacing: 0.03em;
+    /* ── Intro Screen ────────────────────────────────────── */
+    #intro {
+      position: fixed; inset: 0; background: rgba(3,3,8,0.95);
+      z-index: 300; display: flex; align-items: center; justify-content: center;
+      animation: fadeIn 0.3s ease;
     }
+    #intro-card {
+      background: #12122a; border: 1px solid #2a2a4a;
+      border-radius: 22px; padding: 36px 42px;
+      max-width: 430px; width: 92%; text-align: center;
+      max-height: 92vh; overflow-y: auto;
+    }
+    #intro-card h1 {
+      font-size: 2rem; font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 10px;
+    }
+    #intro-card p { color: #94a3b8; font-size: 0.93rem; line-height: 1.7; margin-bottom: 8px; }
+    .avatar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6366f1; margin: 18px 0 10px; }
+    #avatar-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
+    .av-btn {
+      width: 46px; height: 46px; border-radius: 12px; font-size: 1.5rem;
+      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+      cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      line-height: 46px; text-align: center;
+    }
+    .av-btn.selected { border-color: #6366f1; background: rgba(99,102,241,0.18); transform: scale(1.1); }
+    .av-btn:hover:not(.selected) { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
+    .npc-preview { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 0; }
+    .npc-chip {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px; padding: 4px 11px; font-size: 0.8rem; color: #c4b5fd;
+    }
+    #start-btn {
+      display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff; border: none; border-radius: 14px; padding: 14px 38px;
+      font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 6px;
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    #start-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+
+    /* ── Keyframes ───────────────────────────────────────── */
+    @keyframes npcBob       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    @keyframes auraPulse    { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.2);opacity:0.7} }
+    @keyframes lampGlow     { 0%,100%{filter:drop-shadow(0 0 5px rgba(255,180,50,.6))} 50%{filter:drop-shadow(0 0 12px rgba(255,210,80,.95))} }
+    @keyframes twinkle      { 0%,100%{opacity:.25;transform:scale(.8)} 50%{opacity:.9;transform:scale(1.3)} }
+    @keyframes dotBounce    { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(-5px);opacity:1} }
+    @keyframes msgPop       { from{transform:scale(.9) translateY(4px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+    @keyframes popIn        { from{transform:translateY(-6px) scale(0.7);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+    @keyframes fadeIn       { from{opacity:0} to{opacity:1} }
+    @keyframes fadeUp       { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+    @keyframes gradShift    { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+    @keyframes spinEmoji    { to{transform:rotate(360deg)} }
+    @keyframes blink        { 0%,49%{opacity:0.7} 50%,100%{opacity:0} }
+    @keyframes wordFade     { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
   </style>
 </head>
 <body>
 
-<!-- ── World ─────────────────────────────────────── -->
 <div id="world-wrap">
   <div id="world">
     <div id="player">🧍</div>
   </div>
 </div>
 
-<!-- ── Dialog ────────────────────────────────────── -->
 <div id="dialog">
   <div id="dialog-head">
     <div id="dialog-avatar"></div>
     <div id="dialog-npc-name"></div>
+    <div id="dialog-count">0/5</div>
     <button id="dialog-close" onclick="closeDialog()">✕</button>
   </div>
   <div id="dialog-msgs"></div>
-  <div id="dialog-input-row">
-    <input type="text" id="dialog-input" placeholder="Type your reply..." autocomplete="off" autocorrect="off" autocapitalize="off" />
-    <button id="dialog-send">Send ↑</button>
-  </div>
+  <div id="choice-grid"></div>
+  <div id="done-row">✓ Conversation complete — visit more characters</div>
 </div>
 
-<!-- ── Toast ─────────────────────────────────────── -->
 <div id="toast"></div>
 
-<!-- ── Desktop controls hint ─────────────────────── -->
 <div id="hint-bar">
-  <span>WASD</span> / <span>↑↓←→</span> &nbsp;Move &nbsp;·&nbsp; <span>E</span> &nbsp;Talk &nbsp;·&nbsp; <span>Esc</span> &nbsp;Close
+  <span>WASD</span> / <span>↑↓←→</span> &nbsp;Move &nbsp;·&nbsp;
+  <span>Click</span> &nbsp;Walk there &nbsp;·&nbsp;
+  <span>E</span> &nbsp;Talk &nbsp;·&nbsp;
+  <span>Esc</span> &nbsp;Close
 </div>
 
-<!-- ── Mobile D-pad ───────────────────────────────── -->
-<div id="dpad">
-  <div class="drow"><div class="dblank"></div><button class="dbtn" id="btn-up">↑</button><div class="dblank"></div></div>
-  <div class="drow">
-    <button class="dbtn" id="btn-left">←</button>
-    <div class="dblank"></div>
-    <button class="dbtn" id="btn-right">→</button>
-  </div>
-  <div class="drow"><div class="dblank"></div><button class="dbtn" id="btn-dn">↓</button><div class="dblank"></div></div>
-</div>
+<div id="joystick-base"><div id="joystick-knob"></div></div>
 <button id="talk-btn-mobile" onclick="mobileInteract()">💬 Talk</button>
 
-<!-- ── Progress Counter ───────────────────────────── -->
-<div id="progress">0 / 5 characters chatted</div>
-
-<!-- ── Reveal Button ──────────────────────────────── -->
+<div id="progress">0 / 5</div>
 <button id="reveal-btn" onclick="analyzePersonality()">✨ Reveal My Personality</button>
 
-<!-- ── Profile Modal ──────────────────────────────── -->
 <div id="profile-modal">
   <div id="profile-card">
     <button id="profile-close" onclick="closeProfile()">✕</button>
-    <div id="profile-loading"><span class="spin">🔮</span>Analyzing your personality...</div>
+    <div id="profile-loading"><span class="spin">🔮</span>Reading your personality...</div>
     <div id="profile-content" style="display:none">
       <div id="profile-title">🔮 Your Personality</div>
       <div id="profile-summary"></div>
+      <button id="profile-restart" onclick="restartGame()">↺ Play Again</button>
     </div>
   </div>
 </div>
 
-<!-- ── Intro Screen ───────────────────────────────── -->
 <div id="intro">
   <div id="intro-card">
     <h1>🎭 Personality Playground</h1>
-    <p>Walk around and chat with 5 characters. Each one asks you one question — then get your personality revealed!</p>
+    <p>Chat with 5 characters. Each asks you one question — then your personality is revealed!</p>
+    <div class="avatar-label">Choose your character</div>
+    <div id="avatar-pick">
+      <button class="av-btn selected" data-emoji="🧍">🧍</button>
+      <button class="av-btn" data-emoji="🦊">🦊</button>
+      <button class="av-btn" data-emoji="🐱">🐱</button>
+      <button class="av-btn" data-emoji="🐺">🐺</button>
+      <button class="av-btn" data-emoji="🐸">🐸</button>
+      <button class="av-btn" data-emoji="🤖">🤖</button>
+      <button class="av-btn" data-emoji="👾">👾</button>
+      <button class="av-btn" data-emoji="🦄">🦄</button>
+    </div>
     <div class="npc-preview">
       <span class="npc-chip">👶 Baby Charlie</span>
       <span class="npc-chip">👴 Grandpa Joe</span>
@@ -521,7 +501,10 @@
       <span class="npc-chip">🧑‍🎤 Alex</span>
       <span class="npc-chip">🤖 Unit-7</span>
     </div>
-    <p style="font-size:.82rem;color:#4b5563;">Use <strong style="color:#6366f1">WASD</strong> or arrow keys to move. Press <strong style="color:#6366f1">E</strong> when near a character to talk.</p>
+    <p style="font-size:.8rem;color:#4b5563;">
+      <strong style="color:#6366f1">WASD</strong> / arrows or <strong style="color:#6366f1">click</strong> to move &nbsp;·&nbsp;
+      <strong style="color:#6366f1">E</strong> or tap to talk
+    </p>
     <button id="start-btn" onclick="startGame()">Enter the Playground →</button>
   </div>
 </div>
@@ -531,65 +514,87 @@
 //  CONFIG
 // ═══════════════════════════════════════════════════════
 const W = 1100, H = 650;
-const SPEED = 215;        // px / sec
-const REACH = 98;         // interaction distance
+const SPEED = 220;
+const REACH = 98;
+const JOY_MAX = 50;
 
 const NPCS = {
   baby: {
-    x: 168, y: 215,
-    name: "Baby Charlie", emoji: "👶", color: "#f472b6",
-    opener: "Goo goo! 👶 *reaches up at you excitedly* Baba baba! Oh! You smewll nice! Da da — if you could have ANY superpower, what would it be? Goo?"
+    x: 168, y: 215, name: "Baby Charlie", emoji: "👶", color: "#f472b6",
+    opener: "Goo goo! 👶 *reaches up excitedly* Baba baba! Oh! You smewll nice! Da da — if you could have ANY superpower, what would it be? Goo?",
+    choices: ["🦸 The power to heal anyone", "⏰ Turn back time", "🧠 Read people's minds", "🌊 Control the forces of nature"]
   },
   grandpa: {
-    x: 888, y: 188,
-    name: "Grandpa Joe", emoji: "👴", color: "#f59e0b",
-    opener: "Well, hello there! *adjusts glasses* Don't get many visitors these days. Back in my day, people just strolled up and started chatting — good to see that hasn't changed. So tell me, young one: what do you value most in a friendship?"
+    x: 888, y: 188, name: "Grandpa Joe", emoji: "👴", color: "#f59e0b",
+    opener: "Well, hello there! *adjusts glasses* Don't get many visitors these days. So tell me, young one: what do you value most in a friendship?",
+    choices: ["🤝 Loyalty — someone who always shows up", "😂 Making each other laugh constantly", "🗣️ Brutal honesty, no sugarcoating", "🤫 Giving each other space, no questions"]
   },
   wizard: {
-    x: 530, y: 128,
-    name: "The Mystic", emoji: "🔮", color: "#a78bfa",
-    opener: "*peers into crystal ball, eyes wide* Ahhhh... the stars whispered of your approach. I have been waiting. The ancient scrolls speak of a traveler burdened with questions. Tell me — what is the one thing in life you fear most?"
+    x: 530, y: 128, name: "The Mystic", emoji: "🔮", color: "#a78bfa",
+    opener: "*peers into crystal ball, eyes wide* The stars whispered of your approach. Tell me — what is the one thing in life you fear most?",
+    choices: ["💔 Losing someone I love deeply", "🌫️ Being completely forgotten", "🚪 Running out of time", "🌀 Never finding my purpose"]
   },
   detective: {
-    x: 128, y: 478,
-    name: "Detective Sharp", emoji: "🕵️", color: "#34d399",
-    opener: "*closes notebook, squints* I've been watching you cross the plaza. Very interesting. Very telling. Let's start simple — what's the very first thing you do every single morning, without fail?"
+    x: 128, y: 478, name: "Detective Sharp", emoji: "🕵️", color: "#34d399",
+    opener: "*closes notebook, squints* I've been watching you cross the plaza. Very telling. Let's start simple — what's the very first thing you do every single morning?",
+    choices: ["📱 Immediately check my phone", "☕ Make coffee or tea, always", "🌞 Stretch, breathe, ease into it", "📋 Start planning the whole day"]
   },
   teen: {
-    x: 542, y: 508,
-    name: "Alex", emoji: "🧑‍🎤", color: "#ec4899",
-    opener: "omg HI!! no cap you look like you have genuine main character energy rn. lowkey I always try to vibe-check new people lol — so what's your absolute biggest ick? be so fr, I won't judge ngl"
+    x: 542, y: 508, name: "Alex", emoji: "🧑‍🎤", color: "#ec4899",
+    opener: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr, I won't judge ngl",
+    choices: ["😤 Being fake online but 'nice' irl", "🕰️ Chronically late to everything", "🗣️ Never listening, just waiting to talk", "😒 Rude to people in service jobs"]
   },
   robot: {
-    x: 948, y: 472,
-    name: "Unit-7", emoji: "🤖", color: "#06b6d4",
-    opener: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... ERROR: Human complexity exceeds preset parameters. Switching to manual query mode. QUESTION: What is your primary motivation when facing a difficult decision?"
+    x: 948, y: 472, name: "Unit-7", emoji: "🤖", color: "#06b6d4",
+    opener: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUESTION: What is your primary motivation when facing a difficult decision?",
+    choices: ["🔍 Pure logic and available data", "💖 What my gut feeling says", "👥 What's best for everyone", "🌱 What serves long-term growth"]
   }
 };
 
-// Decorations: { e:emoji, x, y, cls:'tree'|'lamp'|'flower'|'rock'|'star' }
 const DECOR_LIST = [
-  // Trees — border
-  {e:"🌲",x:38, y:28, cls:"tree"}, {e:"🌲",x:168,y:15, cls:"tree"}, {e:"🌲",x:328,y:10, cls:"tree"},
-  {e:"🌲",x:688,y:12, cls:"tree"}, {e:"🌲",x:858,y:18, cls:"tree"}, {e:"🌲",x:1025,y:28,cls:"tree"},
+  {e:"🌲",x:38,y:28,cls:"tree"},{e:"🌲",x:168,y:15,cls:"tree"},{e:"🌲",x:328,y:10,cls:"tree"},
+  {e:"🌲",x:688,y:12,cls:"tree"},{e:"🌲",x:858,y:18,cls:"tree"},{e:"🌲",x:1025,y:28,cls:"tree"},
   {e:"🌲",x:1055,y:188,cls:"tree"},{e:"🌲",x:1055,y:408,cls:"tree"},
-  {e:"🌲",x:38, y:408,cls:"tree"}, {e:"🌲",x:38, y:208,cls:"tree"},
-  {e:"🌲",x:178,y:598,cls:"tree"}, {e:"🌲",x:348,y:612,cls:"tree"},
-  {e:"🌲",x:688,y:614,cls:"tree"}, {e:"🌲",x:858,y:600,cls:"tree"},
-  // Lanterns
-  {e:"🏮",x:262,y:295,cls:"lamp"}, {e:"🏮",x:808,y:295,cls:"lamp"},
-  {e:"🏮",x:262,y:388,cls:"lamp"}, {e:"🏮",x:808,y:388,cls:"lamp"},
-  // Flowers
+  {e:"🌲",x:38,y:408,cls:"tree"},{e:"🌲",x:38,y:208,cls:"tree"},
+  {e:"🌲",x:178,y:598,cls:"tree"},{e:"🌲",x:348,y:612,cls:"tree"},
+  {e:"🌲",x:688,y:614,cls:"tree"},{e:"🌲",x:858,y:600,cls:"tree"},
+  {e:"🏮",x:262,y:295,cls:"lamp"},{e:"🏮",x:808,y:295,cls:"lamp"},
+  {e:"🏮",x:262,y:388,cls:"lamp"},{e:"🏮",x:808,y:388,cls:"lamp"},
   {e:"🌸",x:348,y:318,cls:"flower"},{e:"🌸",x:718,y:315,cls:"flower"},
   {e:"🌼",x:356,y:358,cls:"flower"},{e:"🌼",x:712,y:358,cls:"flower"},
   {e:"🌺",x:420,y:280,cls:"flower"},{e:"🌺",x:648,y:278,cls:"flower"},
   {e:"🌺",x:418,y:400,cls:"flower"},{e:"🌺",x:648,y:402,cls:"flower"},
-  // Rocks
-  {e:"🪨",x:408,y:258,cls:"rock"}, {e:"🪨",x:658,y:252,cls:"rock"},
-  {e:"🪨",x:404,y:418,cls:"rock"}, {e:"🪨",x:660,y:422,cls:"rock"},
-  // Mushrooms
+  {e:"🪨",x:408,y:258,cls:"rock"},{e:"🪨",x:658,y:252,cls:"rock"},
+  {e:"🪨",x:404,y:418,cls:"rock"},{e:"🪨",x:660,y:422,cls:"rock"},
   {e:"🍄",x:488,y:228,cls:"flower"},{e:"🍄",x:588,y:225,cls:"flower"},
 ];
+
+// ═══════════════════════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════════════════════
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, dur, type = 'sine', vol = 0.08) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+const sfx = {
+  open:   () => { playTone(440, 0.07); setTimeout(() => playTone(554, 0.09), 55); },
+  choice: () => { playTone(523, 0.08, 'sine', 0.07); },
+  done:   () => { [523,659,784].forEach((f,i) => setTimeout(() => playTone(f,0.18,'sine',0.07), i*65)); },
+  reveal: () => { [392,523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,0.28,'sine',0.06), i*60)); },
+};
 
 // ═══════════════════════════════════════════════════════
 //  STATE
@@ -597,35 +602,45 @@ const DECOR_LIST = [
 let player = { x: 530, y: 328 };
 let keys = {};
 let lastTs = 0;
-let nearNPC   = null;
+let nearNPC = null;
 let activeNPC = null;
-let chatBusy  = false;
+let chatBusy = false;
+let playerEmoji = '🧍';
 const histories = {};
 const chattedWith = new Set();
 Object.keys(NPCS).forEach(id => histories[id] = []);
 
+let joy = { active: false, id: null, bx: 0, by: 0, kx: 0, ky: 0 };
+let moveTarget = null;
+const npcWander = {};
+
 // ═══════════════════════════════════════════════════════
 //  DOM
 // ═══════════════════════════════════════════════════════
-const worldEl    = document.getElementById('world');
-const playerEl   = document.getElementById('player');
-const dialogEl   = document.getElementById('dialog');
-const dialogAvt  = document.getElementById('dialog-avatar');
-const dialogName = document.getElementById('dialog-npc-name');
-const dialogMsgs = document.getElementById('dialog-msgs');
-const dialogInp  = document.getElementById('dialog-input');
-const dialogSend = document.getElementById('dialog-send');
-const toastEl    = document.getElementById('toast');
-const talkMobile = document.getElementById('talk-btn-mobile');
+const worldWrapEl = document.getElementById('world-wrap');
+const worldEl     = document.getElementById('world');
+const playerEl    = document.getElementById('player');
+const dialogEl    = document.getElementById('dialog');
+const dialogAvt   = document.getElementById('dialog-avatar');
+const dialogName  = document.getElementById('dialog-npc-name');
+const dialogMsgs  = document.getElementById('dialog-msgs');
+const dialogCount = document.getElementById('dialog-count');
+const choiceGrid  = document.getElementById('choice-grid');
+const doneRow     = document.getElementById('done-row');
+const toastEl     = document.getElementById('toast');
+const talkMobile  = document.getElementById('talk-btn-mobile');
+const joyBase     = document.getElementById('joystick-base');
+const joyKnob     = document.getElementById('joystick-knob');
+const progressEl  = document.getElementById('progress');
+const moveTargetEl= null; // set after buildWorld
 
 // ═══════════════════════════════════════════════════════
-//  SCALE WORLD TO VIEWPORT
+//  SCALE WORLD
 // ═══════════════════════════════════════════════════════
 function scaleWorld() {
-  const sx = window.innerWidth  / W;
-  const sy = window.innerHeight / H;
-  const s  = Math.min(sx, sy);
-  const ox = (window.innerWidth  - W * s) / 2;
+  const sx = window.innerWidth / W, sy = window.innerHeight / H;
+  const s = Math.min(sx, sy);
+  const ox = (window.innerWidth - W * s) / 2;
   const oy = (window.innerHeight - H * s) / 2;
   worldEl.style.transform = `scale(${s})`;
   worldEl.style.left = ox + 'px';
@@ -637,12 +652,11 @@ window.addEventListener('resize', scaleWorld);
 // ═══════════════════════════════════════════════════════
 //  BUILD WORLD
 // ═══════════════════════════════════════════════════════
+let moveTargetEl2 = null;
 function buildWorld() {
-  // Stars
   for (let i = 0; i < 80; i++) {
     const s = document.createElement('div');
-    s.className = 'decor decor-star';
-    s.textContent = '✦';
+    s.className = 'decor decor-star'; s.textContent = '✦';
     s.style.cssText = `left:${Math.random()*1080+10}px;top:${Math.random()*95+5}px;` +
       `font-size:${(Math.random()*.35+.28).toFixed(2)}rem;` +
       `opacity:${(Math.random()*.5+.15).toFixed(2)};` +
@@ -650,53 +664,72 @@ function buildWorld() {
     worldEl.appendChild(s);
   }
 
-  // Decorations
   DECOR_LIST.forEach(d => {
     const el = document.createElement('div');
     el.className = 'decor decor-' + d.cls;
-    el.textContent = d.e;
-    el.style.left = d.x + 'px';
-    el.style.top  = d.y + 'px';
+    el.textContent = d.e; el.style.left = d.x + 'px'; el.style.top = d.y + 'px';
     worldEl.appendChild(el);
   });
 
-  // NPCs
+  const mt = document.createElement('div');
+  mt.id = 'move-target'; worldEl.appendChild(mt);
+  moveTargetEl2 = mt;
+
   Object.entries(NPCS).forEach(([id, npc]) => {
     const el = document.createElement('div');
-    el.className = 'npc';
-    el.id = 'npc-' + id;
+    el.className = 'npc'; el.id = 'npc-' + id;
     el.style.cssText = `left:${npc.x-36}px;top:${npc.y-52}px;`;
     el.style.setProperty('--c', npc.color);
     el.innerHTML =
       `<div class="npc-aura"></div>` +
-      `<div class="npc-sprite">${npc.emoji}</div>` +
+      `<div class="npc-sprite-wrap">` +
+        `<div class="npc-sprite">${npc.emoji}</div>` +
+        `<div class="npc-badge">✓</div>` +
+      `</div>` +
       `<div class="npc-name">${npc.name}</div>` +
       `<div class="npc-hint"><kbd>E</kbd> Talk</div>`;
 
-    // Click / tap to interact (works on mobile too)
+    npcWander[id] = { ox: npc.x, oy: npc.y, tx: npc.x, ty: npc.y, timer: Math.random() * 2 };
+
     el.addEventListener('click', () => {
       if (activeNPC) return;
       const dx = player.x - npc.x, dy = player.y - npc.y;
-      if (Math.sqrt(dx*dx + dy*dy) < REACH * 2.8) {
+      if (Math.sqrt(dx*dx + dy*dy) < REACH * 2.5) {
         openDialog(id);
       } else {
-        // Glide toward NPC then open
+        moveTarget = { x: npc.x, y: npc.y };
         const glide = setInterval(() => {
-          player.x += (npc.x - player.x) * 0.18;
-          player.y += (npc.y - player.y) * 0.18;
-          updatePlayer();
-          if (Math.abs(player.x - npc.x) < 8 && Math.abs(player.y - npc.y) < 8) {
-            clearInterval(glide);
+          const dx2 = npc.x - player.x, dy2 = npc.y - player.y;
+          if (Math.sqrt(dx2*dx2 + dy2*dy2) < REACH * 0.85) {
+            clearInterval(glide); moveTarget = null;
             if (!activeNPC) openDialog(id);
           }
-        }, 16);
+        }, 80);
       }
     });
-
     worldEl.appendChild(el);
   });
 }
 buildWorld();
+
+// ═══════════════════════════════════════════════════════
+//  NPC WANDER
+// ═══════════════════════════════════════════════════════
+function updateNPCWander(dt) {
+  Object.entries(npcWander).forEach(([id, w]) => {
+    if (id === activeNPC) return;
+    w.timer -= dt;
+    if (w.timer <= 0) {
+      w.tx = w.ox + (Math.random() - 0.5) * 36;
+      w.ty = w.oy + (Math.random() - 0.5) * 24;
+      w.timer = 2.5 + Math.random() * 3;
+    }
+    NPCS[id].x += (w.tx - NPCS[id].x) * 0.2 * dt;
+    NPCS[id].y += (w.ty - NPCS[id].y) * 0.2 * dt;
+    const el = document.getElementById('npc-' + id);
+    if (el) { el.style.left = (NPCS[id].x - 36) + 'px'; el.style.top = (NPCS[id].y - 52) + 'px'; }
+  });
+}
 
 // ═══════════════════════════════════════════════════════
 //  GAME LOOP
@@ -706,15 +739,38 @@ function gameLoop(ts) {
   lastTs = ts;
 
   if (!activeNPC) {
-    if (keys.up    || keys.w) player.y -= SPEED * dt;
-    if (keys.down  || keys.s) player.y += SPEED * dt;
-    if (keys.left  || keys.a) player.x -= SPEED * dt;
-    if (keys.right || keys.d) player.x += SPEED * dt;
-    player.x = Math.max(18, Math.min(W - 18, player.x));
-    player.y = Math.max(18, Math.min(H - 22, player.y));
+    let moved = false;
+    if (keys.up    || keys.w) { player.y -= SPEED * dt; moved = true; }
+    if (keys.down  || keys.s) { player.y += SPEED * dt; moved = true; }
+    if (keys.left  || keys.a) { player.x -= SPEED * dt; moved = true; }
+    if (keys.right || keys.d) { player.x += SPEED * dt; moved = true; }
+
+    if (joy.active) {
+      const mag = Math.sqrt(joy.kx * joy.kx + joy.ky * joy.ky);
+      if (mag > 8) {
+        const norm = mag / JOY_MAX;
+        player.x += (joy.kx / mag) * SPEED * norm * dt;
+        player.y += (joy.ky / mag) * SPEED * norm * dt;
+        moved = true;
+      }
+    }
+
+    if (moveTarget && !moved) {
+      const dx = moveTarget.x - player.x, dy = moveTarget.y - player.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > 5) { player.x += (dx/dist) * SPEED * dt; player.y += (dy/dist) * SPEED * dt; }
+      else moveTarget = null;
+    } else if (moved) {
+      moveTarget = null;
+    }
+
+    player.x = Math.max(20, Math.min(W - 20, player.x));
+    player.y = Math.max(20, Math.min(H - 24, player.y));
     updatePlayer();
     checkProximity();
   }
+
+  updateNPCWander(dt);
   requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(ts => { lastTs = ts; gameLoop(ts); });
@@ -734,25 +790,91 @@ function checkProximity() {
     const dx = player.x - npc.x, dy = player.y - npc.y;
     if (Math.sqrt(dx*dx + dy*dy) < REACH) { found = id; break; }
   }
-
   if (found !== nearNPC) {
     if (nearNPC) document.getElementById('npc-' + nearNPC)?.classList.remove('near');
     nearNPC = found;
     if (nearNPC) document.getElementById('npc-' + nearNPC)?.classList.add('near');
   }
-
   const isMobile = 'ontouchstart' in window;
   if (nearNPC && !activeNPC) {
-    toastEl.innerHTML = isMobile
-      ? `Tap <strong>${NPCS[nearNPC].name}</strong> to talk`
-      : `<kbd>E</kbd> — Talk to <strong>${NPCS[nearNPC].name}</strong>`;
-    toastEl.style.display = 'block';
-    talkMobile.style.display = isMobile ? 'block' : 'none';
+    const isDone = chattedWith.has(nearNPC);
+    if (!isDone) {
+      toastEl.innerHTML = isMobile
+        ? `Tap <strong>${NPCS[nearNPC].name}</strong> to talk`
+        : `<kbd>E</kbd> — Talk to <strong>${NPCS[nearNPC].name}</strong>`;
+      toastEl.style.display = 'block';
+    } else {
+      toastEl.style.display = 'none';
+    }
+    talkMobile.style.display = (isMobile && !isDone) ? 'block' : 'none';
   } else if (!activeNPC) {
     toastEl.style.display = 'none';
     talkMobile.style.display = 'none';
   }
 }
+
+// ═══════════════════════════════════════════════════════
+//  CLICK-TO-MOVE
+// ═══════════════════════════════════════════════════════
+function screenToWorld(cx, cy) {
+  const rect = worldEl.getBoundingClientRect();
+  const s = rect.width / W;
+  return { x: (cx - rect.left) / s, y: (cy - rect.top) / s };
+}
+
+worldWrapEl.addEventListener('click', (e) => {
+  if (activeNPC) return;
+  if (e.target.closest('.npc') || dialogEl.contains(e.target)) return;
+  const wc = screenToWorld(e.clientX, e.clientY);
+  if (wc.x < 0 || wc.x > W || wc.y < 0 || wc.y > H) return;
+  moveTarget = wc;
+  if (moveTargetEl2) {
+    moveTargetEl2.style.left = wc.x + 'px';
+    moveTargetEl2.style.top  = wc.y + 'px';
+    moveTargetEl2.style.display = 'block';
+    moveTargetEl2.style.animation = 'none';
+    void moveTargetEl2.offsetWidth;
+    moveTargetEl2.style.animation = '';
+    setTimeout(() => { if (moveTargetEl2) moveTargetEl2.style.display = 'none'; }, 600);
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+//  VIRTUAL JOYSTICK
+// ═══════════════════════════════════════════════════════
+worldWrapEl.addEventListener('touchstart', (e) => {
+  if (activeNPC) return;
+  if (e.target.closest('.npc') || dialogEl.contains(e.target)) return;
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joy.active = true; joy.id = t.identifier;
+  joy.bx = t.clientX; joy.by = t.clientY; joy.kx = 0; joy.ky = 0;
+  joyBase.style.left = (joy.bx - 60) + 'px';
+  joyBase.style.top  = (joy.by - 60) + 'px';
+  joyBase.style.display = 'block';
+  joyKnob.style.transform = 'translate(-50%, -50%)';
+}, { passive: false });
+
+worldWrapEl.addEventListener('touchmove', (e) => {
+  if (!joy.active) return;
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (t.identifier !== joy.id) continue;
+    const dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const cl = Math.min(dist, JOY_MAX), angle = Math.atan2(dy, dx);
+    joy.kx = Math.cos(angle) * cl; joy.ky = Math.sin(angle) * cl;
+    joyKnob.style.transform = `translate(calc(-50% + ${joy.kx}px), calc(-50% + ${joy.ky}px))`;
+  }
+}, { passive: false });
+
+worldWrapEl.addEventListener('touchend', (e) => {
+  for (const t of e.changedTouches) {
+    if (t.identifier !== joy.id) continue;
+    joy.active = false; joy.kx = 0; joy.ky = 0;
+    joyBase.style.display = 'none';
+  }
+}, { passive: false });
 
 // ═══════════════════════════════════════════════════════
 //  DIALOG
@@ -764,145 +886,158 @@ function openDialog(npcId) {
 
   dialogEl.style.setProperty('--dc', npc.color);
   dialogEl.style.borderTopColor = npc.color;
-  dialogAvt.textContent  = npc.emoji;
+  dialogAvt.textContent = npc.emoji;
   dialogAvt.style.borderColor = npc.color;
   dialogName.textContent = npc.name;
   dialogName.style.color = npc.color;
+  dialogCount.textContent = `${chattedWith.size}/5`;
 
   dialogEl.style.display = 'flex';
   requestAnimationFrame(() => dialogEl.classList.add('open'));
   dialogMsgs.innerHTML = '';
+  choiceGrid.innerHTML = '';
+  choiceGrid.classList.remove('hidden');
+  doneRow.classList.remove('visible');
 
-  // First visit: show opener immediately (no API call)
+  const alreadyDone = chattedWith.has(npcId);
+
   if (histories[npcId].length === 0) {
-    addMsg('npc', npc.opener);
+    addMsg('npc', npc.opener, true);
     histories[npcId].push({ role: 'assistant', content: npc.opener });
+    if (!alreadyDone) setTimeout(() => showChoices(npcId), npc.opener.length * 16 + 200);
   } else {
-    // Replay existing messages
     histories[npcId].forEach(m => addMsg(m.role === 'user' ? 'user' : 'npc', m.content));
+    if (alreadyDone) {
+      choiceGrid.classList.add('hidden');
+      doneRow.classList.add('visible');
+    } else {
+      showChoices(npcId);
+    }
   }
 
-  // Lock input if this NPC already had their one exchange
-  const alreadyAnswered = histories[npcId].some(m => m.role === 'user');
-  dialogInp.disabled = alreadyAnswered;
-  dialogSend.disabled = alreadyAnswered;
-  dialogInp.placeholder = alreadyAnswered ? 'Conversation complete ✓' : 'Type your reply...';
-
+  sfx.open();
   toastEl.style.display = 'none';
   talkMobile.style.display = 'none';
-  if (!alreadyAnswered) setTimeout(() => dialogInp.focus(), 350);
 }
 
-function closeDialog() {
-  dialogEl.classList.remove('open');
-  setTimeout(() => { dialogEl.style.display = 'none'; }, 320);
-  activeNPC = null;
-  keys = {};  // clear any held movement keys
+function showChoices(npcId) {
+  const npc = NPCS[npcId];
+  choiceGrid.innerHTML = '';
+  choiceGrid.classList.remove('hidden');
+  npc.choices.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = text;
+    btn.style.animationDelay = (i * 0.05) + 's';
+    btn.addEventListener('click', () => sendChoice(npcId, text));
+    choiceGrid.appendChild(btn);
+  });
 }
 
-function addMsg(role, text) {
-  const div = document.createElement('div');
-  div.className = 'msg msg-' + role;
-  div.textContent = text;
-  dialogMsgs.appendChild(div);
-  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
-}
-
-function showLoader() {
-  const div = document.createElement('div');
-  div.className = 'msg-loading';
-  div.id = 'msg-loader';
-  div.innerHTML = '<span></span><span></span><span></span>';
-  dialogMsgs.appendChild(div);
-  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
-}
-
-async function sendMsg() {
-  if (chatBusy || !activeNPC) return;
-  const text = dialogInp.value.trim();
-  if (!text) return;
-
-  dialogInp.value = '';
-  addMsg('user', text);
-
-  const npcId = activeNPC;
+async function sendChoice(npcId, choiceText) {
+  if (chatBusy || activeNPC !== npcId) return;
   chatBusy = true;
-  dialogSend.disabled = true;
-  dialogInp.disabled = true;
+  sfx.choice();
+
+  choiceGrid.classList.add('hidden');
+  addMsg('user', choiceText);
   showLoader();
 
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ npcId, history: histories[npcId], userMessage: text })
+      body: JSON.stringify({ npcId, history: histories[npcId], userMessage: choiceText })
     });
-
     document.getElementById('msg-loader')?.remove();
     const data = await res.json();
-
     if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
 
-    addMsg('npc', data.response);
-    histories[npcId].push({ role: 'user',      content: text });
+    addMsg('npc', data.response, true);
+    histories[npcId].push({ role: 'user', content: choiceText });
     histories[npcId].push({ role: 'assistant', content: data.response });
     chattedWith.add(npcId);
-
-    // Lock input — one exchange per NPC is all we need
-    chatBusy = false;
-    dialogInp.disabled = true;
-    dialogSend.disabled = true;
-    dialogInp.placeholder = 'Conversation complete ✓';
+    document.getElementById('npc-' + npcId)?.classList.add('done');
+    dialogCount.textContent = `${chattedWith.size}/5`;
+    progressEl.textContent = `${chattedWith.size} / 5`;
+    sfx.done();
 
     const remaining = 5 - chattedWith.size;
-    if (remaining > 0) {
-      const hint = document.createElement('div');
-      hint.style.cssText = 'text-align:center;font-size:0.78rem;color:rgba(167,139,250,0.75);padding:10px 0 2px;';
-      hint.textContent = `Chat with ${remaining} more character${remaining !== 1 ? 's' : ''} to reveal your personality ✦`;
-      dialogMsgs.appendChild(hint);
-      dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
-    } else {
-      closeDialog();
-      setTimeout(() => analyzePersonality(), 400);
-    }
-    return;
+    const hintDelay = data.response.length * 16 + 400;
+    setTimeout(() => {
+      if (remaining > 0) {
+        doneRow.textContent = `✓ ${chattedWith.size}/5 — visit ${remaining} more character${remaining !== 1 ? 's' : ''} to unlock your personality`;
+        doneRow.classList.add('visible');
+      } else {
+        closeDialog();
+        setTimeout(() => analyzePersonality(), 400);
+      }
+    }, hintDelay);
 
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
     addMsg('npc', '⚠️ Something went wrong — ' + err.message);
-    console.error('Chat error:', err.message);
+    choiceGrid.classList.remove('hidden');
+    showChoices(npcId);
   }
-
   chatBusy = false;
-  dialogSend.disabled = false;
-  dialogInp.disabled = false;
-  if (activeNPC) dialogInp.focus();
+}
+
+function closeDialog() {
+  dialogEl.classList.remove('open');
+  setTimeout(() => { dialogEl.style.display = 'none'; }, 320);
+  activeNPC = null;
+  keys = {};
+}
+
+function addMsg(role, text, typewrite = false) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + role;
+  dialogMsgs.appendChild(div);
+  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
+
+  if (typewrite && role === 'npc') {
+    div.classList.add('typing');
+    let i = 0;
+    const rate = Math.max(12, Math.min(22, Math.floor(6000 / text.length)));
+    const timer = setInterval(() => {
+      div.textContent = text.slice(0, ++i);
+      dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
+      if (i >= text.length) { clearInterval(timer); div.classList.remove('typing'); }
+    }, rate);
+  } else {
+    div.textContent = text;
+  }
+  return div;
+}
+
+function showLoader() {
+  const div = document.createElement('div');
+  div.className = 'msg-loading'; div.id = 'msg-loader';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  dialogMsgs.appendChild(div);
+  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
 }
 
 // ═══════════════════════════════════════════════════════
 //  PERSONALITY ANALYSIS
 // ═══════════════════════════════════════════════════════
-function checkAllChatted() {
-  const count = chattedWith.size;
-  document.getElementById('progress').textContent = `${count} / 5 characters chatted`;
-}
-
 async function analyzePersonality() {
-  const modal = document.getElementById('profile-modal');
-  const loading = document.getElementById('profile-loading');
-  const content = document.getElementById('profile-content');
+  const modal    = document.getElementById('profile-modal');
+  const loading  = document.getElementById('profile-loading');
+  const content  = document.getElementById('profile-content');
 
   modal.classList.add('open');
   loading.style.display = 'block';
   content.style.display = 'none';
+  sfx.reveal();
 
-  // Collect the one Q&A exchange per NPC
   const responses = [];
   for (const [npcId, history] of Object.entries(histories)) {
     for (let i = 0; i < history.length - 1; i++) {
-      if (history[i].role === 'assistant' && history[i + 1].role === 'user') {
-        responses.push({ text: history[i].content, choice: history[i + 1].content });
-        break; // only first exchange per NPC
+      if (history[i].role === 'assistant' && history[i+1].role === 'user') {
+        responses.push({ text: history[i].content, choice: history[i+1].content });
+        break;
       }
     }
   }
@@ -916,9 +1051,20 @@ async function analyzePersonality() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
 
-    document.getElementById('profile-summary').textContent = data.summary;
     loading.style.display = 'none';
     content.style.display = 'block';
+
+    const summaryEl = document.getElementById('profile-summary');
+    summaryEl.innerHTML = '';
+    const words = data.summary.split(' ');
+    words.forEach((word, i) => {
+      const span = document.createElement('span');
+      span.className = 'word';
+      span.textContent = (i === 0 ? '' : ' ') + word;
+      span.style.animationDelay = (i * 0.04) + 's';
+      summaryEl.appendChild(span);
+    });
+
   } catch (err) {
     loading.innerHTML = `<span class="spin">⚠️</span>${err.message}`;
   }
@@ -928,23 +1074,23 @@ function closeProfile() {
   document.getElementById('profile-modal').classList.remove('open');
 }
 
+function restartGame() {
+  location.reload();
+}
+
 // ═══════════════════════════════════════════════════════
-//  INPUT HANDLERS
+//  KEYBOARD
 // ═══════════════════════════════════════════════════════
 document.addEventListener('keydown', e => {
-  // Always handle Escape
   if (e.key === 'Escape' && activeNPC) { closeDialog(); return; }
-  // Don't intercept while typing in input
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
   if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = true;
   if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = true;
   if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-  if ((e.key === 'e' || e.key === 'E') && nearNPC && !activeNPC) openDialog(nearNPC);
+  if ((e.key === 'e' || e.key === 'E') && nearNPC && !activeNPC && !chattedWith.has(nearNPC)) openDialog(nearNPC);
 });
-
 document.addEventListener('keyup', e => {
   if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = false;
   if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = false;
@@ -952,33 +1098,21 @@ document.addEventListener('keyup', e => {
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
 });
 
-dialogInp.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
-});
-dialogSend.addEventListener('click', sendMsg);
-
-// Mobile D-pad
-[
-  ['btn-up',    'up'],
-  ['btn-dn',    'down'],
-  ['btn-left',  'left'],
-  ['btn-right', 'right'],
-].forEach(([id, k]) => {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  const on  = e => { e.preventDefault(); keys[k] = true; };
-  const off = e => { e.preventDefault(); keys[k] = false; };
-  btn.addEventListener('touchstart', on,  { passive: false });
-  btn.addEventListener('touchend',   off, { passive: false });
-  btn.addEventListener('touchcancel',off, { passive: false });
-  btn.addEventListener('mousedown',  on);
-  btn.addEventListener('mouseup',    off);
-  btn.addEventListener('mouseleave', off);
-});
-
 function mobileInteract() {
-  if (nearNPC && !activeNPC) openDialog(nearNPC);
+  if (nearNPC && !activeNPC && !chattedWith.has(nearNPC)) openDialog(nearNPC);
 }
+
+// ═══════════════════════════════════════════════════════
+//  AVATAR SELECTION
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.av-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.av-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    playerEmoji = btn.dataset.emoji;
+    playerEl.textContent = playerEmoji;
+  });
+});
 
 // ═══════════════════════════════════════════════════════
 //  INTRO
@@ -989,7 +1123,6 @@ function startGame() {
   intro.style.transition = 'opacity 0.4s';
   setTimeout(() => intro.remove(), 400);
 }
-// Also dismiss intro on Enter or Space
 document.addEventListener('keydown', function onKey(e) {
   if ((e.key === 'Enter' || e.key === ' ') && document.getElementById('intro')) {
     startGame();
