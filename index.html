@@ -137,7 +137,7 @@
     /* ── Dialog ──────────────────────────────────────────── */
     #dialog {
       position: fixed; bottom: 0; left: 0; right: 0;
-      height: 310px;
+      height: 390px;
       background: rgba(6, 6, 16, 0.97);
       backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
       border-top: 2px solid var(--dc, #6366f1);
@@ -223,19 +223,20 @@
       padding: 6px 0 2px; font-style: italic;
     }
 
-    /* ── Choice Buttons ──────────────────────────────────── */
+    /* ── Choice Area ─────────────────────────────────────── */
+    #choice-area { flex-shrink: 0; }
+    #choice-area.hidden { display: none; }
+
     #choice-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 7px; padding: 8px 14px 12px;
-      flex-shrink: 0;
+      gap: 6px; padding: 8px 14px 0;
     }
-    #choice-grid.hidden { display: none; }
     .choice-btn {
       background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.28);
-      border-radius: 11px; color: #e2e8f0;
-      padding: 10px 12px; font-size: 0.8rem;
+      border-radius: 10px; color: #e2e8f0;
+      padding: 9px 11px; font-size: 0.79rem;
       font-family: inherit; cursor: pointer;
-      text-align: left; line-height: 1.35;
+      text-align: left; line-height: 1.3;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
       animation: msgPop 0.22s ease both;
     }
@@ -245,12 +246,39 @@
     .choice-btn:hover { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.5); transform: translateY(-2px); }
     .choice-btn:active { transform: scale(0.96); }
 
+    .or-divider {
+      text-align: center; font-size: 0.66rem; color: rgba(255,255,255,0.18);
+      letter-spacing: 0.06em; padding: 7px 0 4px;
+      border-top: 1px solid rgba(255,255,255,0.05); margin: 6px 14px 0;
+    }
+    #dialog-input-row {
+      display: flex; gap: 7px; padding: 0 14px 10px;
+    }
+    #dialog-input {
+      flex: 1; background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; color: #e8e8f0;
+      padding: 9px 13px; font-size: 0.88rem; font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    #dialog-input:focus { outline: none; border-color: var(--dc, #6366f1); }
+    #dialog-input::placeholder { color: #3a3a5a; }
+    #dialog-send {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border: none; border-radius: 10px; color: #fff;
+      padding: 9px 15px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    #dialog-send:hover { opacity: 0.85; transform: scale(1.05); }
+    #dialog-send:active { transform: scale(0.96); }
+
     /* ── Done row ────────────────────────────────────────── */
     #done-row {
       display: none; align-items: center; justify-content: center;
-      padding: 8px 14px 12px;
-      font-size: 0.8rem; color: rgba(255,255,255,0.3);
-      flex-shrink: 0; gap: 8px;
+      padding: 8px 14px 11px;
+      font-size: 0.78rem; color: rgba(255,255,255,0.28);
+      flex-shrink: 0;
     }
     #done-row.visible { display: flex; }
 
@@ -301,8 +329,8 @@
     @media (pointer: coarse) {
       #talk-btn-mobile { display: block; }
       #hint-bar { display: none; }
-      #dialog { height: min(340px, 48vh); }
-      .choice-btn { padding: 12px; font-size: 0.82rem; }
+      #dialog { height: min(430px, 58vh); }
+      .choice-btn { padding: 10px; font-size: 0.8rem; }
     }
 
     /* ── Progress Counter ────────────────────────────────── */
@@ -447,8 +475,15 @@
     <button id="dialog-close" onclick="closeDialog()">✕</button>
   </div>
   <div id="dialog-msgs"></div>
-  <div id="choice-grid"></div>
-  <div id="done-row">✓ Conversation complete — visit more characters</div>
+  <div id="choice-area">
+    <div id="choice-grid"></div>
+    <div class="or-divider">— or type your own —</div>
+    <div id="dialog-input-row">
+      <input type="text" id="dialog-input" placeholder="Type your own answer..." autocomplete="off" autocorrect="off" />
+      <button id="dialog-send">↑</button>
+    </div>
+  </div>
+  <div id="done-row"></div>
 </div>
 
 <div id="toast"></div>
@@ -481,7 +516,7 @@
 <div id="intro">
   <div id="intro-card">
     <h1>🎭 Personality Playground</h1>
-    <p>Chat with 5 characters. Each asks you one question — then your personality is revealed!</p>
+    <p>Answer 5 questions from any characters you like. Each character has 2 questions, so you can get them all from 3 people or spread it out — your choice!</p>
     <div class="avatar-label">Choose your character</div>
     <div id="avatar-pick">
       <button class="av-btn selected" data-emoji="🧍">🧍</button>
@@ -521,33 +556,57 @@ const JOY_MAX = 50;
 const NPCS = {
   baby: {
     x: 168, y: 215, name: "Baby Charlie", emoji: "👶", color: "#f472b6",
-    opener: "Goo goo! 👶 *reaches up excitedly* Baba baba! Oh! You smewll nice! Da da — if you could have ANY superpower, what would it be? Goo?",
-    choices: ["🦸 The power to heal anyone", "⏰ Turn back time", "🧠 Read people's minds", "🌊 Control the forces of nature"]
+    questions: [
+      { text: "Goo goo! 👶 *reaches up excitedly* Baba baba! Oh! You smewll nice! Da da — if you could have ANY superpower, what would it be? Goo?",
+        choices: ["🦸 The power to heal anyone", "⏰ Turn back time", "🧠 Read people's minds", "🌊 Control the forces of nature"] },
+      { text: "*babbles and claps* Goo! One more thing da da — when you feel sad, what do you do? *tilts head curiously*",
+        choices: ["🛌 Be alone and recharge quietly", "🤗 Talk to someone I trust", "🎮 Distract myself with something fun", "😤 Push through and keep going"] }
+    ]
   },
   grandpa: {
     x: 888, y: 188, name: "Grandpa Joe", emoji: "👴", color: "#f59e0b",
-    opener: "Well, hello there! *adjusts glasses* Don't get many visitors these days. So tell me, young one: what do you value most in a friendship?",
-    choices: ["🤝 Loyalty — someone who always shows up", "😂 Making each other laugh constantly", "🗣️ Brutal honesty, no sugarcoating", "🤫 Giving each other space, no questions"]
+    questions: [
+      { text: "Well, hello there! *adjusts glasses* Don't get many visitors these days. So tell me, young one: what do you value most in a friendship?",
+        choices: ["🤝 Loyalty — someone who always shows up", "😂 Making each other laugh constantly", "🗣️ Brutal honesty, no sugarcoating", "🤫 Giving each other space, no questions"] },
+      { text: "*leans on cane* Good answer. Now — when things go badly wrong in your life, what's your first instinct?",
+        choices: ["🔧 Fix it immediately, no wallowing", "📞 Call someone for advice", "🤔 Think it through alone first", "🌊 Let yourself feel it before acting"] }
+    ]
   },
   wizard: {
     x: 530, y: 128, name: "The Mystic", emoji: "🔮", color: "#a78bfa",
-    opener: "*peers into crystal ball, eyes wide* The stars whispered of your approach. Tell me — what is the one thing in life you fear most?",
-    choices: ["💔 Losing someone I love deeply", "🌫️ Being completely forgotten", "🚪 Running out of time", "🌀 Never finding my purpose"]
+    questions: [
+      { text: "*peers into crystal ball, eyes wide* The stars whispered of your approach. Tell me — what is the one thing in life you fear most?",
+        choices: ["💔 Losing someone I love deeply", "🌫️ Being completely forgotten", "🚪 Running out of time", "🌀 Never finding my purpose"] },
+      { text: "*the crystal ball swirls with light* The vision deepens... where do you feel most like yourself?",
+        choices: ["🌊 Somewhere vast and open — ocean or sky", "🏙️ In the energy of a busy city", "🌲 Alone in nature, completely quiet", "👥 Surrounded by people I love"] }
+    ]
   },
   detective: {
     x: 128, y: 478, name: "Detective Sharp", emoji: "🕵️", color: "#34d399",
-    opener: "*closes notebook, squints* I've been watching you cross the plaza. Very telling. Let's start simple — what's the very first thing you do every single morning?",
-    choices: ["📱 Immediately check my phone", "☕ Make coffee or tea, always", "🌞 Stretch, breathe, ease into it", "📋 Start planning the whole day"]
+    questions: [
+      { text: "*closes notebook, squints* I've been watching you cross the plaza. Very telling. What's the very first thing you do every single morning?",
+        choices: ["📱 Immediately check my phone", "☕ Make coffee or tea, always", "🌞 Stretch, breathe, ease into it", "📋 Start planning the whole day"] },
+      { text: "*taps pen thoughtfully* Mm. And when you're in a group, which role do you naturally slip into?",
+        choices: ["🎯 The one who makes decisions", "🤝 The peacekeeper keeping it smooth", "💡 The one with the unexpected idea", "👁️ The quiet observer who misses nothing"] }
+    ]
   },
   teen: {
     x: 542, y: 508, name: "Alex", emoji: "🧑‍🎤", color: "#ec4899",
-    opener: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr, I won't judge ngl",
-    choices: ["😤 Being fake online but 'nice' irl", "🕰️ Chronically late to everything", "🗣️ Never listening, just waiting to talk", "😒 Rude to people in service jobs"]
+    questions: [
+      { text: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr, I won't judge ngl",
+        choices: ["😤 Being fake online but 'nice' irl", "🕰️ Chronically late to everything", "🗣️ Never listening, just waiting to talk", "😒 Rude to people in service jobs"] },
+      { text: "ok ok that tracks lol. one more — what's your go-to when you have a completely free day with zero plans?",
+        choices: ["🛋️ Fully decompress, nothing scheduled", "🌍 Spontaneous adventure, go somewhere new", "📱 Deep dive into whatever I'm obsessed with", "👯 Round up friends and make it a whole thing"] }
+    ]
   },
   robot: {
     x: 948, y: 472, name: "Unit-7", emoji: "🤖", color: "#06b6d4",
-    opener: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUESTION: What is your primary motivation when facing a difficult decision?",
-    choices: ["🔍 Pure logic and available data", "💖 What my gut feeling says", "👥 What's best for everyone", "🌱 What serves long-term growth"]
+    questions: [
+      { text: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUERY 1 OF 2: What is your primary motivation when facing a difficult decision?",
+        choices: ["🔍 Pure logic and available data", "💖 What my gut feeling says", "👥 What's best for everyone", "🌱 What serves long-term growth"] },
+      { text: "PROCESSING... QUERY 2 OF 2: In your social group, what function do you most frequently perform?",
+        choices: ["⚡ Generating energy and excitement", "🧩 Solving problems others can't crack", "🛡️ Protecting the group's emotional wellbeing", "🗺️ Planning and organizing everything"] }
+    ]
   }
 };
 
@@ -606,9 +665,10 @@ let nearNPC = null;
 let activeNPC = null;
 let chatBusy = false;
 let playerEmoji = '🧍';
+let totalAnswered = 0;
 const histories = {};
-const chattedWith = new Set();
-Object.keys(NPCS).forEach(id => histories[id] = []);
+const npcAnswered = {};
+Object.keys(NPCS).forEach(id => { histories[id] = []; npcAnswered[id] = 0; });
 
 let joy = { active: false, id: null, bx: 0, by: 0, kx: 0, ky: 0 };
 let moveTarget = null;
@@ -625,7 +685,10 @@ const dialogAvt   = document.getElementById('dialog-avatar');
 const dialogName  = document.getElementById('dialog-npc-name');
 const dialogMsgs  = document.getElementById('dialog-msgs');
 const dialogCount = document.getElementById('dialog-count');
+const choiceArea  = document.getElementById('choice-area');
 const choiceGrid  = document.getElementById('choice-grid');
+const dialogInput = document.getElementById('dialog-input');
+const dialogSend  = document.getElementById('dialog-send');
 const doneRow     = document.getElementById('done-row');
 const toastEl     = document.getElementById('toast');
 const talkMobile  = document.getElementById('talk-btn-mobile');
@@ -797,8 +860,8 @@ function checkProximity() {
   }
   const isMobile = 'ontouchstart' in window;
   if (nearNPC && !activeNPC) {
-    const isDone = chattedWith.has(nearNPC);
-    if (!isDone) {
+    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
+    if (npcHasMore) {
       toastEl.innerHTML = isMobile
         ? `Tap <strong>${NPCS[nearNPC].name}</strong> to talk`
         : `<kbd>E</kbd> — Talk to <strong>${NPCS[nearNPC].name}</strong>`;
@@ -806,7 +869,7 @@ function checkProximity() {
     } else {
       toastEl.style.display = 'none';
     }
-    talkMobile.style.display = (isMobile && !isDone) ? 'block' : 'none';
+    talkMobile.style.display = (isMobile && npcHasMore) ? 'block' : 'none';
   } else if (!activeNPC) {
     toastEl.style.display = 'none';
     talkMobile.style.display = 'none';
@@ -883,6 +946,9 @@ function openDialog(npcId) {
   if (activeNPC) return;
   activeNPC = npcId;
   const npc = NPCS[npcId];
+  const answered = npcAnswered[npcId];
+  const npcExhausted = answered >= npc.questions.length;
+  const globalDone = totalAnswered >= 5;
 
   dialogEl.style.setProperty('--dc', npc.color);
   dialogEl.style.borderTopColor = npc.color;
@@ -890,28 +956,35 @@ function openDialog(npcId) {
   dialogAvt.style.borderColor = npc.color;
   dialogName.textContent = npc.name;
   dialogName.style.color = npc.color;
-  dialogCount.textContent = `${chattedWith.size}/5`;
+  dialogCount.textContent = `${totalAnswered}/5`;
 
   dialogEl.style.display = 'flex';
   requestAnimationFrame(() => dialogEl.classList.add('open'));
   dialogMsgs.innerHTML = '';
   choiceGrid.innerHTML = '';
-  choiceGrid.classList.remove('hidden');
+  dialogInput.value = '';
+  choiceArea.classList.remove('hidden');
   doneRow.classList.remove('visible');
 
-  const alreadyDone = chattedWith.has(npcId);
-
   if (histories[npcId].length === 0) {
-    addMsg('npc', npc.opener, true);
-    histories[npcId].push({ role: 'assistant', content: npc.opener });
-    if (!alreadyDone) setTimeout(() => showChoices(npcId), npc.opener.length * 16 + 200);
+    const q = npc.questions[0];
+    addMsg('npc', q.text, true);
+    histories[npcId].push({ role: 'assistant', content: q.text });
+    if (!npcExhausted && !globalDone) {
+      setTimeout(() => showQuestion(npcId, 0), q.text.length * 16 + 200);
+    } else {
+      choiceArea.classList.add('hidden');
+    }
   } else {
     histories[npcId].forEach(m => addMsg(m.role === 'user' ? 'user' : 'npc', m.content));
-    if (alreadyDone) {
-      choiceGrid.classList.add('hidden');
+    if (npcExhausted || globalDone) {
+      choiceArea.classList.add('hidden');
+      doneRow.textContent = npcExhausted
+        ? `✓ All done here — find more characters to keep going`
+        : `✓ 5/5 — personality reveal incoming!`;
       doneRow.classList.add('visible');
     } else {
-      showChoices(npcId);
+      showQuestion(npcId, answered);
     }
   }
 
@@ -920,65 +993,83 @@ function openDialog(npcId) {
   talkMobile.style.display = 'none';
 }
 
-function showChoices(npcId) {
-  const npc = NPCS[npcId];
+function showQuestion(npcId, questionIdx) {
+  const question = NPCS[npcId].questions[questionIdx];
   choiceGrid.innerHTML = '';
-  choiceGrid.classList.remove('hidden');
-  npc.choices.forEach((text, i) => {
+  choiceArea.classList.remove('hidden');
+  dialogInput.value = '';
+  question.choices.forEach((text, i) => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.textContent = text;
     btn.style.animationDelay = (i * 0.05) + 's';
-    btn.addEventListener('click', () => sendChoice(npcId, text));
+    btn.addEventListener('click', () => sendAnswer(npcId, text));
     choiceGrid.appendChild(btn);
   });
+  if (!('ontouchstart' in window)) setTimeout(() => dialogInput.focus(), 50);
 }
 
-async function sendChoice(npcId, choiceText) {
+async function sendAnswer(npcId, answerText) {
   if (chatBusy || activeNPC !== npcId) return;
+  answerText = answerText.trim();
+  if (!answerText) return;
   chatBusy = true;
   sfx.choice();
 
-  choiceGrid.classList.add('hidden');
-  addMsg('user', choiceText);
+  choiceArea.classList.add('hidden');
+  dialogInput.value = '';
+  addMsg('user', answerText);
   showLoader();
 
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ npcId, history: histories[npcId], userMessage: choiceText })
+      body: JSON.stringify({ npcId, history: histories[npcId], userMessage: answerText })
     });
     document.getElementById('msg-loader')?.remove();
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
 
     addMsg('npc', data.response, true);
-    histories[npcId].push({ role: 'user', content: choiceText });
+    histories[npcId].push({ role: 'user', content: answerText });
     histories[npcId].push({ role: 'assistant', content: data.response });
-    chattedWith.add(npcId);
-    document.getElementById('npc-' + npcId)?.classList.add('done');
-    dialogCount.textContent = `${chattedWith.size}/5`;
-    progressEl.textContent = `${chattedWith.size} / 5`;
+
+    npcAnswered[npcId]++;
+    totalAnswered++;
+
+    if (npcAnswered[npcId] >= NPCS[npcId].questions.length) {
+      document.getElementById('npc-' + npcId)?.classList.add('done');
+    }
+    dialogCount.textContent = `${totalAnswered}/5`;
+    progressEl.textContent = `${totalAnswered} / 5`;
     sfx.done();
 
-    const remaining = 5 - chattedWith.size;
-    const hintDelay = data.response.length * 16 + 400;
+    const npc = NPCS[npcId];
+    const hasMore = npcAnswered[npcId] < npc.questions.length;
+    const remaining = 5 - totalAnswered;
+    const typeDelay = data.response.length * 16 + 450;
+
     setTimeout(() => {
-      if (remaining > 0) {
-        doneRow.textContent = `✓ ${chattedWith.size}/5 — visit ${remaining} more character${remaining !== 1 ? 's' : ''} to unlock your personality`;
-        doneRow.classList.add('visible');
-      } else {
+      if (remaining <= 0) {
         closeDialog();
         setTimeout(() => analyzePersonality(), 400);
+      } else if (hasMore) {
+        const nextQ = npc.questions[npcAnswered[npcId]];
+        addMsg('npc', nextQ.text, true);
+        histories[npcId].push({ role: 'assistant', content: nextQ.text });
+        setTimeout(() => showQuestion(npcId, npcAnswered[npcId]), nextQ.text.length * 16 + 200);
+      } else {
+        doneRow.textContent = `✓ Done here — ${remaining} more answer${remaining !== 1 ? 's' : ''} to go, visit other characters!`;
+        doneRow.classList.add('visible');
       }
-    }, hintDelay);
+    }, typeDelay);
 
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
     addMsg('npc', '⚠️ Something went wrong — ' + err.message);
-    choiceGrid.classList.remove('hidden');
-    showChoices(npcId);
+    choiceArea.classList.remove('hidden');
+    showQuestion(npcId, npcAnswered[npcId]);
   }
   chatBusy = false;
 }
@@ -989,6 +1080,11 @@ function closeDialog() {
   activeNPC = null;
   keys = {};
 }
+
+dialogInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAnswer(activeNPC, dialogInput.value); }
+});
+dialogSend.addEventListener('click', () => sendAnswer(activeNPC, dialogInput.value));
 
 function addMsg(role, text, typewrite = false) {
   const div = document.createElement('div');
@@ -1037,7 +1133,6 @@ async function analyzePersonality() {
     for (let i = 0; i < history.length - 1; i++) {
       if (history[i].role === 'assistant' && history[i+1].role === 'user') {
         responses.push({ text: history[i].content, choice: history[i+1].content });
-        break;
       }
     }
   }
@@ -1089,7 +1184,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = true;
   if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
   if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-  if ((e.key === 'e' || e.key === 'E') && nearNPC && !activeNPC && !chattedWith.has(nearNPC)) openDialog(nearNPC);
+  if ((e.key === 'e' || e.key === 'E') && nearNPC && !activeNPC) {
+    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
+    if (npcHasMore) openDialog(nearNPC);
+  }
 });
 document.addEventListener('keyup', e => {
   if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = false;
@@ -1099,7 +1197,10 @@ document.addEventListener('keyup', e => {
 });
 
 function mobileInteract() {
-  if (nearNPC && !activeNPC && !chattedWith.has(nearNPC)) openDialog(nearNPC);
+  if (nearNPC && !activeNPC) {
+    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
+    if (npcHasMore) openDialog(nearNPC);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
