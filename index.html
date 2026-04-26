@@ -4,33 +4,56 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Personality Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     /* ── Reset ──────────────────────────────────────────── */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #030308; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: #030308; overflow: hidden;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+    }
 
     /* ── World ──────────────────────────────────────────── */
-    #world-wrap { position: fixed; inset: 0; background: #030308; }
+    #world-wrap {
+      position: fixed; inset: 0; background: #030308;
+      transition: filter 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    body.in-dialog #world-wrap {
+      filter: blur(5px) brightness(0.28) saturate(0.5);
+      pointer-events: none;
+    }
     #world {
       position: absolute;
       width: 1100px; height: 650px;
       transform-origin: top left;
-      background-color: #0c0c20;
+      background-color: #080818;
       background-image:
-        radial-gradient(ellipse 65% 55% at 50% 48%, rgba(34,197,94,0.07) 0%, transparent 100%),
-        radial-gradient(ellipse 90% 90% at 50% 50%, rgba(99,102,241,0.05) 0%, transparent 70%),
-        linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
-      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-      overflow: hidden;
-      cursor: crosshair;
+        radial-gradient(ellipse 140px 100px at 168px 215px, rgba(244,114,182,0.06) 0%, transparent 100%),
+        radial-gradient(ellipse 140px 100px at 888px 188px, rgba(245,158,11,0.06) 0%, transparent 100%),
+        radial-gradient(ellipse 140px 80px at 530px 128px, rgba(167,139,250,0.07) 0%, transparent 100%),
+        radial-gradient(ellipse 120px 100px at 128px 478px, rgba(52,211,153,0.06) 0%, transparent 100%),
+        radial-gradient(ellipse 140px 100px at 542px 508px, rgba(236,72,153,0.06) 0%, transparent 100%),
+        radial-gradient(ellipse 140px 100px at 948px 472px, rgba(6,182,212,0.06) 0%, transparent 100%),
+        radial-gradient(ellipse 55% 45% at 50% 48%, rgba(99,102,241,0.04) 0%, transparent 100%),
+        linear-gradient(rgba(255,255,255,0.008) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.008) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+      overflow: hidden; cursor: crosshair;
     }
+    /* Vignette */
+    #world::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 25;
+      background: radial-gradient(ellipse at 50% 50%, transparent 50%, rgba(3,3,8,0.75) 100%);
+    }
+    /* Central plaza glow */
     #world::before {
-      content: '';
-      position: absolute; left: 50%; top: 50%;
+      content: ''; position: absolute; left: 50%; top: 50%;
       transform: translate(-50%, -50%);
-      width: 320px; height: 220px; border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 70%);
+      width: 280px; height: 180px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.018) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -38,425 +61,325 @@
     #player {
       position: absolute; width: 42px; height: 42px;
       font-size: 1.9rem; text-align: center; line-height: 42px;
-      z-index: 10; pointer-events: none;
-      filter: drop-shadow(0 0 12px rgba(255,255,255,0.45));
-      transition: filter 0.3s;
+      z-index: 15; pointer-events: none;
+      filter: drop-shadow(0 0 14px rgba(255,255,255,0.5));
     }
 
+    /* ── SVG Paths ───────────────────────────────────────── */
+    #world-paths { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+
     /* ── NPC ─────────────────────────────────────────────── */
-    .npc {
-      position: absolute; width: 72px;
-      text-align: center; cursor: pointer; z-index: 5;
-    }
+    .npc { position: absolute; width: 80px; text-align: center; cursor: pointer; z-index: 10; }
     .npc-aura {
-      position: absolute; width: 110px; height: 110px; border-radius: 50%;
+      position: absolute; width: 130px; height: 130px; border-radius: 50%;
       background: radial-gradient(circle, var(--c) 0%, transparent 70%);
-      opacity: 0.1; top: -19px; left: -19px;
+      opacity: 0.08; top: -25px; left: -25px;
       transition: opacity 0.5s; pointer-events: none;
     }
-    .npc.near .npc-aura { opacity: 0.5; animation: auraPulse 1.8s ease-in-out infinite; }
-    .npc-sprite-wrap {
-      position: relative; display: inline-block;
-    }
+    .npc.near .npc-aura { opacity: 0.45; animation: auraPulse 2s ease-in-out infinite; }
+    .npc-sprite-wrap { position: relative; display: inline-block; }
     .npc-sprite {
-      font-size: 2.5rem; display: block;
-      animation: npcBob 2.4s ease-in-out infinite;
-      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55));
-      transition: transform 0.2s, filter 0.3s;
+      font-size: 2.6rem; display: block;
+      animation: npcBob 3s ease-in-out infinite;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+      transition: transform 0.25s, filter 0.3s;
     }
-    .npc:hover .npc-sprite { transform: scale(1.12); }
-    .npc.done .npc-sprite { filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55)) drop-shadow(0 0 10px rgba(34,197,94,0.45)); }
+    .npc:hover .npc-sprite { transform: scale(1.15); }
+    .npc.done .npc-sprite { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6)) drop-shadow(0 0 14px rgba(34,197,94,0.5)); }
     .npc-badge {
-      position: absolute; top: -5px; right: -8px;
-      width: 20px; height: 20px; border-radius: 50%;
-      background: #22c55e; color: #fff;
-      font-size: 0.55rem; font-weight: 900;
+      position: absolute; top: -6px; right: -10px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; font-size: 0.58rem; font-weight: 900;
       display: none; align-items: center; justify-content: center;
-      border: 2px solid #0c0c20;
-      box-shadow: 0 2px 8px rgba(34,197,94,0.5);
-      animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      border: 2px solid #080818;
+      box-shadow: 0 0 10px rgba(34,197,94,0.6);
     }
-    .npc.done .npc-badge { display: flex; }
+    .npc.done .npc-badge { display: flex; animation: badgePop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .npc-name {
-      font-size: 0.65rem; font-weight: 700;
-      color: rgba(255,255,255,0.7);
-      text-shadow: 0 1px 4px #000;
-      margin-top: 3px; white-space: nowrap;
-      letter-spacing: 0.02em;
+      font-size: 0.63rem; font-weight: 700; letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.6); text-shadow: 0 1px 6px #000;
+      margin-top: 4px; white-space: nowrap;
     }
     .npc-hint {
-      display: none;
-      background: rgba(0,0,0,0.82); border: 1px solid var(--c);
-      border-radius: 8px; padding: 3px 9px;
-      font-size: 0.62rem; color: #fff;
-      margin-top: 4px; animation: popIn 0.25s ease; white-space: nowrap;
+      display: none; background: rgba(0,0,0,0.85);
+      border: 1px solid var(--c); border-radius: 8px;
+      padding: 3px 10px; font-size: 0.6rem; color: #fff;
+      margin-top: 5px; white-space: nowrap;
+      animation: popIn 0.2s ease;
     }
     .npc-hint kbd {
       background: var(--c); color: #000; border-radius: 3px;
-      padding: 1px 5px; font-size: 0.58rem; font-weight: 800;
+      padding: 1px 5px; font-size: 0.56rem; font-weight: 800;
     }
     .npc.near .npc-hint { display: inline-block; }
     .npc.done .npc-hint { display: none !important; }
 
     /* ── Decor ───────────────────────────────────────────── */
-    .decor { position: absolute; pointer-events: none; z-index: 2; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45)); }
-    .decor-tree   { font-size: 2.1rem; z-index: 3; }
-    .decor-lamp   { font-size: 1.4rem; animation: lampGlow 3.5s ease-in-out infinite; z-index: 4; }
-    .decor-flower { font-size: 1rem; }
-    .decor-rock   { font-size: 1.1rem; }
-    .decor-star   { animation: twinkle 2s ease-in-out infinite; }
+    .decor { position: absolute; pointer-events: none; z-index: 3; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)); }
+    .decor-tree   { font-size: 2rem; z-index: 4; }
+    .decor-lamp   { font-size: 1.3rem; animation: lampGlow 4s ease-in-out infinite; z-index: 5; }
+    .decor-flower { font-size: 0.95rem; }
+    .decor-rock   { font-size: 1rem; }
+    .decor-star   { animation: twinkle 2s ease-in-out infinite; z-index: 2; }
+
+    /* ── Fog strips ──────────────────────────────────────── */
+    .fog {
+      position: absolute; pointer-events: none; z-index: 6;
+      height: 50px; width: 220%;
+      background: linear-gradient(90deg, transparent 0%, rgba(130,80,255,0.025) 30%, rgba(80,120,255,0.03) 50%, rgba(130,80,255,0.025) 70%, transparent 100%);
+      animation: fogDrift linear infinite;
+    }
 
     /* ── Move Target ─────────────────────────────────────── */
-    #move-target {
-      position: absolute; width: 28px; height: 28px;
-      border-radius: 50%; pointer-events: none; z-index: 8;
-      transform: translate(-50%, -50%); display: none;
-    }
-    #move-target::before {
-      content: '';
-      position: absolute; inset: 0; border-radius: 50%;
-      border: 2px solid rgba(99,102,241,0.8);
-      animation: targetRing 0.55s ease-out forwards;
-    }
-    #move-target::after {
-      content: '×';
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: rgba(99,102,241,0.9); font-size: 1rem; font-weight: 700;
-      animation: targetFade 0.55s ease-out forwards;
-    }
-    @keyframes targetRing {
-      0%  { transform: scale(0.3); opacity: 1; }
-      100%{ transform: scale(2);   opacity: 0; }
-    }
-    @keyframes targetFade {
-      0%  { opacity: 1; }
-      100%{ opacity: 0; }
-    }
+    #move-target { position: absolute; width: 30px; height: 30px; border-radius: 50%; pointer-events: none; z-index: 8; transform: translate(-50%, -50%); display: none; }
+    #move-target::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(99,102,241,0.8); animation: targetRing 0.6s ease-out forwards; }
+    #move-target::after { content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(99,102,241,0.9); font-size: 0.85rem; font-weight: 700; animation: targetFade 0.6s ease-out forwards; }
+    @keyframes targetRing { 0%{ transform: scale(0.3); opacity: 1; } 100%{ transform: scale(2.2); opacity: 0; } }
+    @keyframes targetFade { 0%{ opacity: 1; } 100%{ opacity: 0; } }
 
     /* ── Dialog ──────────────────────────────────────────── */
     #dialog {
       position: fixed; bottom: 0; left: 0; right: 0;
-      height: 390px;
-      background: rgba(6, 6, 16, 0.97);
-      backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+      height: 400px;
+      background: rgba(6, 6, 18, 0.98);
       border-top: 2px solid var(--dc, #6366f1);
       display: none; flex-direction: column;
       z-index: 200;
       transform: translateY(100%);
-      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.6);
     }
     #dialog.open { transform: translateY(0); }
 
     #dialog-head {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 16px 9px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 18px 10px;
+      background: linear-gradient(180deg, rgba(var(--dc-r,99),var(--dc-g,102),var(--dc-b,241),0.12) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
     }
     #dialog-avatar {
-      width: 40px; height: 40px; border-radius: 50%;
-      background: rgba(255,255,255,0.08);
-      border: 2px solid var(--dc, #6366f1);
+      width: 48px; height: 48px; border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 2.5px solid var(--dc, #6366f1);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; flex-shrink: 0;
+      font-size: 1.7rem; flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(var(--dc-r,99),var(--dc-g,102),var(--dc-b,241),0.3);
     }
-    #dialog-npc-name { font-size: 1rem; font-weight: 700; color: var(--dc, #a78bfa); flex: 1; }
+    #dialog-info { flex: 1; min-width: 0; }
+    #dialog-npc-name { font-size: 1rem; font-weight: 800; color: var(--dc, #a78bfa); letter-spacing: -0.01em; }
+    #dialog-qdots { display: flex; gap: 5px; margin-top: 4px; }
+    .qdot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: rgba(255,255,255,0.18);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .qdot.answered { background: var(--dc, #6366f1); box-shadow: 0 0 6px var(--dc, #6366f1); }
+    .qdot.current  { background: var(--dc, #6366f1); opacity: 0.5; animation: dotPulse 1s ease infinite; }
     #dialog-count {
-      font-size: 0.72rem; font-weight: 700;
-      color: rgba(255,255,255,0.35);
-      background: rgba(255,255,255,0.07);
-      border-radius: 20px; padding: 3px 10px;
-      letter-spacing: 0.05em; white-space: nowrap;
+      font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.06); border-radius: 20px; padding: 3px 10px;
+      letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0;
     }
     #dialog-close {
-      background: none; border: none; color: #4b5563;
-      font-size: 1.15rem; cursor: pointer; padding: 4px 9px;
-      border-radius: 7px; transition: color 0.2s, background 0.2s;
+      background: none; border: none; color: #4b5563; font-size: 1.1rem;
+      cursor: pointer; padding: 5px 9px; border-radius: 8px;
+      transition: color 0.2s, background 0.2s; flex-shrink: 0;
     }
-    #dialog-close:hover { color: #e8e8f0; background: rgba(255,255,255,0.09); }
+    #dialog-close:hover { color: #e8e8f0; background: rgba(255,255,255,0.08); }
 
     #dialog-msgs {
-      flex: 1; overflow-y: auto; padding: 10px 16px;
-      display: flex; flex-direction: column; gap: 7px;
-      scroll-behavior: smooth;
+      flex: 1; overflow-y: auto; padding: 10px 18px;
+      display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth;
     }
     #dialog-msgs::-webkit-scrollbar { width: 3px; }
-    #dialog-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    #dialog-msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
-    .msg {
-      max-width: 80%; padding: 9px 14px;
-      border-radius: 15px; font-size: 0.88rem; line-height: 1.55;
-      animation: msgPop 0.18s ease;
-    }
-    .msg-npc {
-      align-self: flex-start;
-      background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
-      color: #e2e8f0; border-bottom-left-radius: 4px;
-    }
-    .msg-user {
-      align-self: flex-end;
-      background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.14);
-      color: #cbd5e1; border-bottom-right-radius: 4px;
-    }
-    .msg.typing::after {
-      content: '▋'; display: inline-block;
-      animation: blink 0.5s ease infinite;
-      opacity: 0.7; margin-left: 2px; font-size: 0.75em;
-    }
-    .msg-loading {
-      align-self: flex-start; display: flex; align-items: center; gap: 5px;
-      padding: 10px 14px;
-      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2);
-      border-radius: 14px; border-bottom-left-radius: 4px;
-    }
-    .msg-loading span {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--dc, #6366f1);
-      animation: dotBounce 1.2s ease-in-out infinite;
-    }
+    .msg { max-width: 82%; padding: 10px 15px; border-radius: 16px; font-size: 0.875rem; line-height: 1.55; animation: msgPop 0.2s ease; font-weight: 400; }
+    .msg-npc { align-self: flex-start; background: rgba(99,102,241,0.12); border: 1px solid rgba(99,102,241,0.25); color: #e2e8f0; border-bottom-left-radius: 5px; }
+    .msg-user { align-self: flex-end; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #c8d5e8; border-bottom-right-radius: 5px; }
+    .msg.typing::after { content: '▋'; display: inline-block; animation: blink 0.5s ease infinite; opacity: 0.7; margin-left: 2px; font-size: 0.75em; }
+    .msg-loading { align-self: flex-start; display: flex; align-items: center; gap: 5px; padding: 11px 15px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); border-radius: 16px; border-bottom-left-radius: 5px; }
+    .msg-loading span { width: 7px; height: 7px; border-radius: 50%; background: var(--dc, #6366f1); animation: dotBounce 1.2s ease-in-out infinite; }
     .msg-loading span:nth-child(2) { animation-delay: 0.2s; }
     .msg-loading span:nth-child(3) { animation-delay: 0.4s; }
-    .msg-hint {
-      align-self: center; text-align: center;
-      font-size: 0.75rem; color: rgba(167,139,250,0.65);
-      padding: 6px 0 2px; font-style: italic;
-    }
 
     /* ── Choice Area ─────────────────────────────────────── */
     #choice-area { flex-shrink: 0; }
     #choice-area.hidden { display: none; }
-
-    #choice-grid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 6px; padding: 8px 14px 0;
-    }
+    #choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px 16px 0; }
     .choice-btn {
-      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.28);
-      border-radius: 10px; color: #e2e8f0;
-      padding: 9px 11px; font-size: 0.79rem;
-      font-family: inherit; cursor: pointer;
-      text-align: left; line-height: 1.3;
+      background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.22);
+      border-radius: 11px; color: #dde4f0; padding: 10px 12px;
+      font-size: 0.79rem; font-family: inherit; font-weight: 500;
+      cursor: pointer; text-align: left; line-height: 1.3;
       transition: background 0.15s, border-color 0.15s, transform 0.1s;
       animation: msgPop 0.22s ease both;
     }
     .choice-btn:nth-child(2) { animation-delay: 0.04s; }
     .choice-btn:nth-child(3) { animation-delay: 0.08s; }
     .choice-btn:nth-child(4) { animation-delay: 0.12s; }
-    .choice-btn:hover { background: rgba(99,102,241,0.25); border-color: rgba(99,102,241,0.5); transform: translateY(-2px); }
-    .choice-btn:active { transform: scale(0.96); }
-
-    .or-divider {
-      text-align: center; font-size: 0.66rem; color: rgba(255,255,255,0.18);
-      letter-spacing: 0.06em; padding: 7px 0 4px;
-      border-top: 1px solid rgba(255,255,255,0.05); margin: 6px 14px 0;
-    }
-    #dialog-input-row {
-      display: flex; gap: 7px; padding: 0 14px 10px;
-    }
+    .choice-btn:hover { background: rgba(99,102,241,0.22); border-color: rgba(99,102,241,0.45); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99,102,241,0.15); }
+    .choice-btn:active { transform: scale(0.97); }
+    .or-divider { text-align: center; font-size: 0.64rem; color: rgba(255,255,255,0.16); letter-spacing: 0.07em; padding: 7px 0 4px; border-top: 1px solid rgba(255,255,255,0.05); margin: 6px 16px 0; }
+    #dialog-input-row { display: flex; gap: 7px; padding: 0 16px 10px; }
     #dialog-input {
-      flex: 1; background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px; color: #e8e8f0;
-      padding: 9px 13px; font-size: 0.88rem; font-family: inherit;
-      transition: border-color 0.2s;
+      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; color: #e8e8f0; padding: 9px 13px;
+      font-size: 0.875rem; font-family: inherit; font-weight: 400;
+      transition: border-color 0.2s, background 0.2s;
     }
-    #dialog-input:focus { outline: none; border-color: var(--dc, #6366f1); }
-    #dialog-input::placeholder { color: #3a3a5a; }
+    #dialog-input:focus { outline: none; border-color: var(--dc, #6366f1); background: rgba(255,255,255,0.08); }
+    #dialog-input::placeholder { color: #2e3050; }
     #dialog-send {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      background: linear-gradient(135deg, var(--dc, #6366f1), #8b5cf6);
       border: none; border-radius: 10px; color: #fff;
-      padding: 9px 15px; font-size: 1rem; font-weight: 700;
-      cursor: pointer; flex-shrink: 0;
-      transition: opacity 0.2s, transform 0.1s;
+      padding: 9px 16px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; flex-shrink: 0; transition: opacity 0.2s, transform 0.1s;
     }
-    #dialog-send:hover { opacity: 0.85; transform: scale(1.05); }
+    #dialog-send:hover { opacity: 0.85; transform: scale(1.06); }
     #dialog-send:active { transform: scale(0.96); }
-
-    /* ── Done row ────────────────────────────────────────── */
-    #done-row {
-      display: none; align-items: center; justify-content: center;
-      padding: 8px 14px 11px;
-      font-size: 0.78rem; color: rgba(255,255,255,0.28);
-      flex-shrink: 0;
-    }
+    #done-row { display: none; align-items: center; justify-content: center; padding: 8px 16px 10px; font-size: 0.78rem; color: rgba(255,255,255,0.25); flex-shrink: 0; gap: 8px; font-weight: 500; }
     #done-row.visible { display: flex; }
 
     /* ── Toast ───────────────────────────────────────────── */
-    #toast {
-      position: fixed; bottom: 20px; left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.82); border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 20px; padding: 7px 18px;
-      font-size: 0.8rem; color: #e8e8f0;
-      z-index: 150; display: none; pointer-events: none;
-      animation: fadeUp 0.3s ease;
-    }
-    #toast kbd { background: rgba(255,255,255,0.18); border-radius: 4px; padding: 1px 6px; font-size: 0.75rem; font-weight: 700; }
+    #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.88); border: 1px solid rgba(255,255,255,0.15); border-radius: 22px; padding: 8px 20px; font-size: 0.8rem; color: #e8e8f0; z-index: 150; display: none; pointer-events: none; animation: fadeUp 0.3s ease; font-weight: 500; backdrop-filter: blur(10px); }
+    #toast kbd { background: rgba(255,255,255,0.18); border-radius: 4px; padding: 1px 7px; font-size: 0.74rem; font-weight: 700; }
 
     /* ── Hint Bar ────────────────────────────────────────── */
-    #hint-bar {
-      position: fixed; bottom: 14px; left: 16px;
-      font-size: 0.68rem; color: rgba(255,255,255,0.25);
-      line-height: 1.9; z-index: 50; pointer-events: none;
-    }
-    #hint-bar span { background: rgba(255,255,255,0.09); border-radius: 4px; padding: 1px 5px; font-family: monospace; }
+    #hint-bar { position: fixed; bottom: 14px; left: 16px; font-size: 0.65rem; color: rgba(255,255,255,0.2); line-height: 2; z-index: 50; pointer-events: none; font-weight: 500; }
+    #hint-bar span { background: rgba(255,255,255,0.08); border-radius: 4px; padding: 1px 6px; font-family: monospace; }
 
-    /* ── Virtual Joystick ────────────────────────────────── */
-    #joystick-base {
-      position: fixed; width: 120px; height: 120px;
-      border-radius: 50%; display: none; pointer-events: none; z-index: 140;
-      background: rgba(255,255,255,0.06);
-      border: 2px solid rgba(255,255,255,0.18);
-      backdrop-filter: blur(4px);
-    }
-    #joystick-knob {
-      position: absolute; width: 50px; height: 50px; border-radius: 50%;
-      background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.45);
-      top: 50%; left: 50%; transform: translate(-50%, -50%);
-      transition: background 0.1s;
-    }
+    /* ── Joystick ────────────────────────────────────────── */
+    #joystick-base { position: fixed; width: 120px; height: 120px; border-radius: 50%; display: none; pointer-events: none; z-index: 140; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.15); backdrop-filter: blur(6px); }
+    #joystick-knob { position: absolute; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.18); border: 2px solid rgba(255,255,255,0.4); top: 50%; left: 50%; transform: translate(-50%, -50%); }
 
-    /* ── Talk Button (mobile) ────────────────────────────── */
-    #talk-btn-mobile {
-      display: none; position: fixed; bottom: 22px; right: 18px;
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      border: none; border-radius: 14px; color: #fff;
-      padding: 13px 20px; font-size: 0.9rem; font-weight: 700;
-      cursor: pointer; z-index: 150;
-      box-shadow: 0 4px 20px rgba(99,102,241,0.4);
-    }
+    /* ── Talk btn mobile ─────────────────────────────────── */
+    #talk-btn-mobile { display: none; position: fixed; bottom: 22px; right: 18px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; border-radius: 16px; color: #fff; padding: 13px 22px; font-size: 0.9rem; font-weight: 700; cursor: pointer; z-index: 150; box-shadow: 0 6px 24px rgba(99,102,241,0.45); font-family: inherit; }
     @media (pointer: coarse) {
       #talk-btn-mobile { display: block; }
       #hint-bar { display: none; }
-      #dialog { height: min(430px, 58vh); }
-      .choice-btn { padding: 10px; font-size: 0.8rem; }
+      #dialog { height: min(440px, 60vh); }
+      .choice-btn { padding: 11px 10px; }
     }
 
-    /* ── Progress Counter ────────────────────────────────── */
-    #progress {
-      position: fixed; top: 14px; right: 16px;
-      font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.45);
-      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 5px 14px; z-index: 50; pointer-events: none;
-      letter-spacing: 0.04em; transition: opacity 0.4s;
+    /* ── Progress Orbs ───────────────────────────────────── */
+    #orb-bar { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; align-items: center; z-index: 50; pointer-events: none; }
+    .orb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.15);
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    .orb.lit {
+      background: radial-gradient(circle, #c4b5fd, #6366f1);
+      border-color: #a78bfa; box-shadow: 0 0 16px rgba(167,139,250,0.85);
+    }
+    #orb-label { font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.25); letter-spacing: 0.06em; margin-left: 4px; }
+
+    /* ── Answer Particle ─────────────────────────────────── */
+    .answer-particle { position: fixed; pointer-events: none; z-index: 300; font-size: 1.2rem; animation: particleRise 1s ease-out forwards; }
 
     /* ── Reveal Button ───────────────────────────────────── */
     #reveal-btn {
-      display: none; position: fixed; bottom: 20px; left: 50%;
-      transform: translateX(-50%);
+      display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
       background: linear-gradient(135deg, #a78bfa, #6366f1, #f472b6);
-      background-size: 200% 200%; animation: gradShift 3s ease infinite;
-      border: none; border-radius: 24px; color: #fff; padding: 14px 34px;
-      font-size: 0.95rem; font-weight: 700; cursor: pointer; z-index: 160;
-      box-shadow: 0 0 28px rgba(167,139,250,0.55); letter-spacing: 0.02em;
-      transition: transform 0.15s, box-shadow 0.15s;
+      background-size: 200%; animation: gradShift 3s ease infinite;
+      border: none; border-radius: 28px; color: #fff; padding: 16px 40px;
+      font-size: 1rem; font-weight: 800; cursor: pointer; z-index: 160;
+      box-shadow: 0 0 36px rgba(167,139,250,0.6); letter-spacing: 0.02em;
+      font-family: inherit; transition: transform 0.15s, box-shadow 0.15s;
     }
-    #reveal-btn:hover { transform: translateX(-50%) translateY(-2px); box-shadow: 0 0 40px rgba(167,139,250,0.75); }
+    #reveal-btn:hover { transform: translateX(-50%) translateY(-3px); box-shadow: 0 0 50px rgba(167,139,250,0.8); }
 
     /* ── Profile Modal ───────────────────────────────────── */
-    #profile-modal {
-      display: none; position: fixed; inset: 0;
-      background: rgba(3,3,8,0.92); backdrop-filter: blur(14px);
-      z-index: 400; align-items: center; justify-content: center;
-      animation: fadeIn 0.3s ease;
-    }
+    #profile-modal { display: none; position: fixed; inset: 0; background: rgba(2,2,10,0.94); backdrop-filter: blur(16px); z-index: 400; align-items: center; justify-content: center; animation: fadeIn 0.35s ease; }
     #profile-modal.open { display: flex; }
-    #profile-card {
-      background: #0e0e22; border: 1px solid rgba(167,139,250,0.3);
-      border-radius: 24px; padding: 40px 44px;
-      max-width: 520px; width: 92%; max-height: 88vh; overflow-y: auto;
-      position: relative; box-shadow: 0 0 70px rgba(99,102,241,0.2);
-    }
+    #profile-card { background: #0a0a1e; border: 1px solid rgba(167,139,250,0.2); border-radius: 26px; padding: 0; max-width: 540px; width: 94%; max-height: 90vh; overflow-y: auto; position: relative; box-shadow: 0 0 80px rgba(99,102,241,0.18); }
     #profile-card::-webkit-scrollbar { width: 3px; }
-    #profile-card::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 2px; }
-    #profile-close {
-      position: absolute; top: 16px; right: 16px;
-      background: rgba(255,255,255,0.07); border: none;
-      color: #94a3b8; font-size: 1rem; cursor: pointer;
-      border-radius: 8px; padding: 5px 10px; transition: background 0.2s, color 0.2s;
+    #profile-card::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.25); border-radius: 2px; }
+    #profile-close { position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.07); border: none; color: #94a3b8; font-size: 1rem; cursor: pointer; border-radius: 9px; padding: 5px 11px; transition: background 0.2s, color 0.2s; z-index: 10; font-family: inherit; }
+    #profile-close:hover { background: rgba(255,255,255,0.13); color: #e2e8f0; }
+    #profile-loading { text-align: center; padding: 60px 40px; color: #7c8aa0; font-size: 0.95rem; }
+    #profile-loading .spin { font-size: 3rem; display: block; margin-bottom: 18px; animation: spinEmoji 1.4s linear infinite; }
+    #profile-loading p { font-size: 0.85rem; margin-top: 8px; color: #4b5563; }
+
+    /* Result content */
+    #profile-content { display: none; }
+    #archetype-block {
+      padding: 36px 32px 28px;
+      background: linear-gradient(180deg, rgba(99,102,241,0.12) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      text-align: center;
     }
-    #profile-close:hover { background: rgba(255,255,255,0.14); color: #e2e8f0; }
-    #profile-loading {
-      text-align: center; padding: 40px 0; color: #94a3b8; font-size: 0.95rem;
+    #archetype-emoji-wrap {
+      width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 16px;
+      background: rgba(99,102,241,0.15); border: 2px solid rgba(167,139,250,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.6rem; box-shadow: 0 0 30px rgba(99,102,241,0.3);
+      animation: emojiGlow 3s ease-in-out infinite;
     }
-    #profile-loading .spin { font-size: 2.5rem; display: block; margin-bottom: 16px; animation: spinEmoji 1.4s linear infinite; }
-    #profile-title {
-      font-size: 1.5rem; font-weight: 800; text-align: center;
-      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
+    #archetype-name {
+      font-size: 1.65rem; font-weight: 900; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #c4b5fd, #818cf8, #f472b6);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; margin-bottom: 20px; line-height: 1.2;
+      background-clip: text; line-height: 1.15;
     }
-    #profile-summary {
-      color: #cbd5e1; font-size: 1rem; line-height: 1.85; text-align: center;
-    }
-    #profile-summary .word { display: inline; opacity: 0; animation: wordFade 0.3s ease forwards; }
-    #profile-restart {
-      display: block; margin: 28px auto 0;
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 12px; color: #94a3b8; padding: 10px 28px;
-      font-size: 0.85rem; font-family: inherit; cursor: pointer;
-      transition: background 0.2s, color 0.2s;
-    }
-    #profile-restart:hover { background: rgba(255,255,255,0.12); color: #e2e8f0; }
+    #archetype-sub { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 6px; }
+    #archetype-traits { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+    .trait-badge { background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3); border-radius: 20px; padding: 5px 14px; font-size: 0.75rem; color: #c4b5fd; font-weight: 600; letter-spacing: 0.03em; }
+
+    #result-sections { padding: 24px 28px 12px; }
+    .result-section { margin-bottom: 20px; animation: sectionSlide 0.4s ease both; }
+    .result-label { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #6366f1; margin-bottom: 7px; }
+    .result-body { color: #b8c4d8; font-size: 0.9rem; line-height: 1.7; font-weight: 400; }
+    .result-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; animation: sectionSlide 0.4s ease both; }
+    .result-half { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 15px 16px; }
+    #result-quote { text-align: center; font-style: italic; color: rgba(255,255,255,0.45); font-size: 0.88rem; line-height: 1.6; padding: 16px 28px 0; margin-bottom: 20px; border-top: 1px solid rgba(255,255,255,0.06); animation: sectionSlide 0.4s ease both; }
+    #result-actions { display: flex; gap: 10px; padding: 0 28px 28px; animation: sectionSlide 0.4s ease both; }
+    #copy-btn { flex: 1; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: #94a3b8; padding: 11px; font-size: 0.84rem; font-family: inherit; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    #copy-btn:hover { background: rgba(255,255,255,0.12); color: #e2e8f0; }
+    #copy-btn.copied { color: #4ade80; border-color: rgba(74,222,128,0.3); }
+    #restart-btn { flex: 1; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25); border-radius: 12px; color: #818cf8; padding: 11px; font-size: 0.84rem; font-family: inherit; font-weight: 600; cursor: pointer; transition: background 0.2s, color 0.2s; }
+    #restart-btn:hover { background: rgba(99,102,241,0.2); color: #c4b5fd; }
 
     /* ── Intro Screen ────────────────────────────────────── */
-    #intro {
-      position: fixed; inset: 0; background: rgba(3,3,8,0.95);
-      z-index: 300; display: flex; align-items: center; justify-content: center;
-      animation: fadeIn 0.3s ease;
-    }
-    #intro-card {
-      background: #12122a; border: 1px solid #2a2a4a;
-      border-radius: 22px; padding: 36px 42px;
-      max-width: 430px; width: 92%; text-align: center;
-      max-height: 92vh; overflow-y: auto;
-    }
-    #intro-card h1 {
-      font-size: 2rem; font-weight: 800;
-      background: linear-gradient(135deg, #a78bfa, #60a5fa, #f472b6);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; margin-bottom: 10px;
-    }
-    #intro-card p { color: #94a3b8; font-size: 0.93rem; line-height: 1.7; margin-bottom: 8px; }
-    .avatar-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6366f1; margin: 18px 0 10px; }
-    #avatar-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 18px; }
-    .av-btn {
-      width: 46px; height: 46px; border-radius: 12px; font-size: 1.5rem;
-      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
-      cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      line-height: 46px; text-align: center;
-    }
-    .av-btn.selected { border-color: #6366f1; background: rgba(99,102,241,0.18); transform: scale(1.1); }
-    .av-btn:hover:not(.selected) { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.08); }
-    .npc-preview { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 0; }
-    .npc-chip {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 4px 11px; font-size: 0.8rem; color: #c4b5fd;
-    }
-    #start-btn {
-      display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff; border: none; border-radius: 14px; padding: 14px 38px;
-      font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 6px;
-      transition: transform 0.15s, opacity 0.15s;
-    }
-    #start-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+    #intro { position: fixed; inset: 0; background: rgba(2,2,10,0.96); z-index: 300; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.4s ease; }
+    #intro-card { background: linear-gradient(160deg, #0f0f26 0%, #0a0a1e 100%); border: 1px solid rgba(99,102,241,0.2); border-radius: 26px; padding: 40px 44px; max-width: 440px; width: 93%; text-align: center; max-height: 92vh; overflow-y: auto; box-shadow: 0 0 80px rgba(99,102,241,0.12); }
+    .intro-eyebrow { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #6366f1; margin-bottom: 14px; }
+    #intro-card h1 { font-size: 2.1rem; font-weight: 900; letter-spacing: -0.04em; background: linear-gradient(135deg, #c4b5fd, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px; line-height: 1.1; }
+    #intro-card .subtitle { color: #6b7a96; font-size: 0.92rem; line-height: 1.7; margin-bottom: 4px; }
+    .divider { height: 1px; background: rgba(255,255,255,0.07); margin: 20px 0; }
+    .avatar-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 12px; }
+    #avatar-pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .av-btn { width: 48px; height: 48px; border-radius: 13px; font-size: 1.55rem; background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); cursor: pointer; transition: border-color 0.15s, background 0.15s, transform 0.1s; line-height: 48px; text-align: center; font-family: inherit; }
+    .av-btn.selected { border-color: #6366f1; background: rgba(99,102,241,0.15); transform: scale(1.1); box-shadow: 0 0 16px rgba(99,102,241,0.4); }
+    .av-btn:hover:not(.selected) { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.07); transform: scale(1.05); }
+    .npc-preview { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 16px 0; }
+    .npc-chip { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 4px 12px; font-size: 0.78rem; color: #9ca3af; }
+    .intro-hint { font-size: 0.75rem; color: rgba(255,255,255,0.2); line-height: 1.8; margin-bottom: 20px; }
+    .intro-hint strong { color: #6366f1; }
+    #start-btn { display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 16px; padding: 15px 44px; font-size: 1rem; font-weight: 800; cursor: pointer; font-family: inherit; letter-spacing: -0.01em; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 8px 30px rgba(99,102,241,0.4); }
+    #start-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(99,102,241,0.55); }
 
     /* ── Keyframes ───────────────────────────────────────── */
-    @keyframes npcBob       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
-    @keyframes auraPulse    { 0%,100%{transform:scale(1);opacity:0.5} 50%{transform:scale(1.2);opacity:0.7} }
-    @keyframes lampGlow     { 0%,100%{filter:drop-shadow(0 0 5px rgba(255,180,50,.6))} 50%{filter:drop-shadow(0 0 12px rgba(255,210,80,.95))} }
-    @keyframes twinkle      { 0%,100%{opacity:.25;transform:scale(.8)} 50%{opacity:.9;transform:scale(1.3)} }
+    @keyframes npcBob       { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    @keyframes auraPulse    { 0%,100%{transform:scale(1);opacity:0.45} 50%{transform:scale(1.25);opacity:0.65} }
+    @keyframes lampGlow     { 0%,100%{filter:drop-shadow(0 0 5px rgba(255,180,50,.65))} 50%{filter:drop-shadow(0 0 14px rgba(255,210,80,1))} }
+    @keyframes twinkle      { 0%,100%{opacity:.2;transform:scale(.75)} 50%{opacity:.85;transform:scale(1.2)} }
     @keyframes dotBounce    { 0%,100%{transform:translateY(0);opacity:.5} 50%{transform:translateY(-5px);opacity:1} }
-    @keyframes msgPop       { from{transform:scale(.9) translateY(4px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+    @keyframes msgPop       { from{transform:scale(.92) translateY(5px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
     @keyframes popIn        { from{transform:translateY(-6px) scale(0.7);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+    @keyframes badgePop     { from{transform:scale(0)} to{transform:scale(1)} }
     @keyframes fadeIn       { from{opacity:0} to{opacity:1} }
-    @keyframes fadeUp       { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+    @keyframes fadeUp       { from{opacity:0;transform:translateX(-50%) translateY(10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
     @keyframes gradShift    { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
     @keyframes spinEmoji    { to{transform:rotate(360deg)} }
-    @keyframes blink        { 0%,49%{opacity:0.7} 50%,100%{opacity:0} }
-    @keyframes wordFade     { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes blink        { 0%,49%{opacity:.7} 50%,100%{opacity:0} }
+    @keyframes dotPulse     { 0%,100%{opacity:.5} 50%{opacity:1} }
+    @keyframes emojiGlow    { 0%,100%{box-shadow:0 0 30px rgba(99,102,241,0.3)} 50%{box-shadow:0 0 50px rgba(167,139,250,0.5)} }
+    @keyframes sectionSlide { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fogDrift     { from{transform:translateX(-50%)} to{transform:translateX(0%)} }
+    @keyframes particleRise { 0%{opacity:1;transform:translateY(0) scale(1)} 100%{opacity:0;transform:translateY(-80px) scale(0.5)} }
   </style>
 </head>
 <body>
@@ -464,13 +387,37 @@
 <div id="world-wrap">
   <div id="world">
     <div id="player">🧍</div>
+    <svg id="world-paths" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="path-blur"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <!-- Glow layer -->
+      <path d="M 168 215 Q 350 170 530 128" stroke="rgba(167,139,250,0.12)" stroke-width="18" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 530 128 Q 710 158 888 188" stroke="rgba(167,139,250,0.12)" stroke-width="18" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 168 215 Q 148 346 128 478" stroke="rgba(167,139,250,0.1)" stroke-width="18" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 530 128 Q 536 318 542 508" stroke="rgba(167,139,250,0.1)" stroke-width="18" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 888 188 Q 918 330 948 472" stroke="rgba(167,139,250,0.1)" stroke-width="18" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 128 478 Q 335 493 542 508" stroke="rgba(167,139,250,0.09)" stroke-width="16" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <path d="M 542 508 Q 745 490 948 472" stroke="rgba(167,139,250,0.09)" stroke-width="16" fill="none" stroke-linecap="round" filter="url(#path-blur)"/>
+      <!-- Sharp line layer -->
+      <path d="M 168 215 Q 350 170 530 128" stroke="rgba(255,255,255,0.04)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 530 128 Q 710 158 888 188" stroke="rgba(255,255,255,0.04)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 168 215 Q 148 346 128 478" stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 530 128 Q 536 318 542 508" stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 888 188 Q 918 330 948 472" stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 128 478 Q 335 493 542 508" stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+      <path d="M 542 508 Q 745 490 948 472" stroke="rgba(255,255,255,0.03)" stroke-width="2" fill="none" stroke-linecap="round" stroke-dasharray="8 12"/>
+    </svg>
   </div>
 </div>
 
 <div id="dialog">
   <div id="dialog-head">
     <div id="dialog-avatar"></div>
-    <div id="dialog-npc-name"></div>
+    <div id="dialog-info">
+      <div id="dialog-npc-name"></div>
+      <div id="dialog-qdots"></div>
+    </div>
     <div id="dialog-count">0/5</div>
     <button id="dialog-close" onclick="closeDialog()">✕</button>
   </div>
@@ -487,36 +434,70 @@
 </div>
 
 <div id="toast"></div>
-
-<div id="hint-bar">
-  <span>WASD</span> / <span>↑↓←→</span> &nbsp;Move &nbsp;·&nbsp;
-  <span>Click</span> &nbsp;Walk there &nbsp;·&nbsp;
-  <span>E</span> &nbsp;Talk &nbsp;·&nbsp;
-  <span>Esc</span> &nbsp;Close
-</div>
-
+<div id="hint-bar"><span>WASD</span> / <span>Click</span> Move &nbsp;·&nbsp; <span>E</span> Talk &nbsp;·&nbsp; <span>Esc</span> Close</div>
 <div id="joystick-base"><div id="joystick-knob"></div></div>
 <button id="talk-btn-mobile" onclick="mobileInteract()">💬 Talk</button>
 
-<div id="progress">0 / 5</div>
+<div id="orb-bar">
+  <div class="orb" id="orb-0"></div>
+  <div class="orb" id="orb-1"></div>
+  <div class="orb" id="orb-2"></div>
+  <div class="orb" id="orb-3"></div>
+  <div class="orb" id="orb-4"></div>
+  <div id="orb-label">0 / 5</div>
+</div>
 <button id="reveal-btn" onclick="analyzePersonality()">✨ Reveal My Personality</button>
 
 <div id="profile-modal">
   <div id="profile-card">
     <button id="profile-close" onclick="closeProfile()">✕</button>
-    <div id="profile-loading"><span class="spin">🔮</span>Reading your personality...</div>
-    <div id="profile-content" style="display:none">
-      <div id="profile-title">🔮 Your Personality</div>
-      <div id="profile-summary"></div>
-      <button id="profile-restart" onclick="restartGame()">↺ Play Again</button>
+    <div id="profile-loading"><span class="spin">🔮</span>Reading your soul...<p>Consulting the ancient scrolls</p></div>
+    <div id="profile-content">
+      <div id="archetype-block">
+        <div id="archetype-emoji-wrap"><span id="archetype-emoji"></span></div>
+        <div id="archetype-name"></div>
+        <div id="archetype-sub">Your Personality Archetype</div>
+        <div id="archetype-traits"></div>
+      </div>
+      <div id="result-sections">
+        <div class="result-section" id="sec-desc" style="animation-delay:0.1s">
+          <div class="result-label">Who You Are</div>
+          <div class="result-body" id="r-description"></div>
+        </div>
+        <div class="result-2col" style="animation-delay:0.2s">
+          <div class="result-half">
+            <div class="result-label">⚡ Superpower</div>
+            <div class="result-body" id="r-superpower"></div>
+          </div>
+          <div class="result-half">
+            <div class="result-label">🌑 Blind Spot</div>
+            <div class="result-body" id="r-weakness"></div>
+          </div>
+        </div>
+        <div class="result-section" style="animation-delay:0.3s">
+          <div class="result-label">👥 In Your Group</div>
+          <div class="result-body" id="r-role"></div>
+        </div>
+        <div class="result-section" style="animation-delay:0.4s">
+          <div class="result-label">🎭 Your Energy</div>
+          <div class="result-body" id="r-match"></div>
+        </div>
+      </div>
+      <div id="result-quote" style="animation-delay:0.5s"></div>
+      <div id="result-actions" style="animation-delay:0.6s">
+        <button id="copy-btn" onclick="copyResult()">📋 Copy Result</button>
+        <button id="restart-btn" onclick="restartGame()">↺ Play Again</button>
+      </div>
     </div>
   </div>
 </div>
 
 <div id="intro">
   <div id="intro-card">
-    <h1>🎭 Personality Playground</h1>
-    <p>Answer 5 questions however you like. Each character has 5 questions — get them all from one person, or explore different characters. You decide!</p>
+    <div class="intro-eyebrow">✦ Personality Playground ✦</div>
+    <h1>Who Are You, Really?</h1>
+    <p class="subtitle">Six legendary characters wait to read your soul. Answer any 5 questions — then discover your personality archetype.</p>
+    <div class="divider"></div>
     <div class="avatar-label">Choose your character</div>
     <div id="avatar-pick">
       <button class="av-btn selected" data-emoji="🧍">🧍</button>
@@ -536,11 +517,11 @@
       <span class="npc-chip">🧑‍🎤 Alex</span>
       <span class="npc-chip">🤖 Unit-7</span>
     </div>
-    <p style="font-size:.8rem;color:#4b5563;">
-      <strong style="color:#6366f1">WASD</strong> / arrows or <strong style="color:#6366f1">click</strong> to move &nbsp;·&nbsp;
-      <strong style="color:#6366f1">E</strong> or tap to talk
-    </p>
-    <button id="start-btn" onclick="startGame()">Enter the Playground →</button>
+    <div class="intro-hint">
+      <strong>WASD</strong> / arrows or <strong>click</strong> to move &nbsp;·&nbsp; <strong>E</strong> or tap to talk<br>
+      Each character has 5 questions — get them all from one or mix it up
+    </div>
+    <button id="start-btn" onclick="startGame()">Begin the Trial →</button>
   </div>
 </div>
 
@@ -548,10 +529,7 @@
 // ═══════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════
-const W = 1100, H = 650;
-const SPEED = 220;
-const REACH = 98;
-const JOY_MAX = 50;
+const W = 1100, H = 650, SPEED = 220, REACH = 98, JOY_MAX = 50;
 
 const NPCS = {
   baby: {
@@ -564,8 +542,8 @@ const NPCS = {
       { text: "*tugs your sleeve* Baba! If you could only keep ONE thing in your life, what would it be? Goo goo?",
         choices: ["💖 The people I love", "🧠 My skills and knowledge", "🌍 My freedom to go anywhere", "💭 My memories and experiences"] },
       { text: "*offers you a toy* Da da! What makes you laugh the most? *giggles adorably*",
-        choices: ["😂 Silly absurd humor, the weirder the better", "🤝 Inside jokes with close friends", "😬 Awkward situations — cringe is funny", "🎭 Clever wordplay and wit"] },
-      { text: "*yawns dramatically* Baba... one more! What kind of person do you want to be? Goo? *stares with big eyes*",
+        choices: ["😂 Silly absurd humor, the weirder the better", "🤝 Inside jokes with close friends", "😬 Awkward cringe situations", "🎭 Clever wordplay and wit"] },
+      { text: "*yawns dramatically* Baba... one more! What kind of person do you want to be? *stares with big eyes*",
         choices: ["💪 Someone strong who protects others", "🌟 Someone who leaves a real impact", "😊 Someone who makes people feel good", "🎯 Someone who achieves big things"] }
     ]
   },
@@ -576,7 +554,7 @@ const NPCS = {
         choices: ["🤝 Loyalty — someone who always shows up", "😂 Making each other laugh constantly", "🗣️ Brutal honesty, no sugarcoating", "🤫 Giving each other space, no questions"] },
       { text: "*leans on cane* Good answer. Now — when things go badly wrong, what's your first instinct?",
         choices: ["🔧 Fix it immediately, no wallowing", "📞 Call someone for advice", "🤔 Think it through alone first", "🌊 Let yourself feel it before acting"] },
-      { text: "*settles into chair* Back in my day we had to earn everything. Tell me — what does success mean to you?",
+      { text: "*settles into chair* Back in my day we had to earn everything. What does success mean to you?",
         choices: ["💰 Financial security and stability", "🎯 Achieving something I set out to do", "❤️ Deep relationships and love", "🕊️ Peace of mind and contentment"] },
       { text: "*nods slowly* Mm. What's the biggest lesson life has taught you so far?",
         choices: ["⏰ Time is the most precious thing", "👥 People matter more than things", "🧗 You're stronger than you think", "🌱 Everything is always changing"] },
@@ -589,11 +567,11 @@ const NPCS = {
     questions: [
       { text: "*peers into crystal ball, eyes wide* The stars whispered of your approach. Tell me — what is the one thing in life you fear most?",
         choices: ["💔 Losing someone I love deeply", "🌫️ Being completely forgotten", "🚪 Running out of time", "🌀 Never finding my purpose"] },
-      { text: "*the crystal ball swirls with light* The vision deepens... where do you feel most like yourself?",
+      { text: "*the crystal ball swirls* The vision deepens... where do you feel most like yourself?",
         choices: ["🌊 Somewhere vast and open — ocean or sky", "🏙️ In the energy of a busy city", "🌲 Alone in nature, completely quiet", "👥 Surrounded by people I love"] },
-      { text: "*traces symbols in the air* The ancient scrolls ask... what do you think happens after we die?",
+      { text: "*traces symbols in the air* The scrolls ask... what do you think happens after we die?",
         choices: ["✨ Something beautiful we can't imagine", "♻️ We return — energy never truly ends", "🌑 Nothing — and that's okay", "🤷 I genuinely have no idea"] },
-      { text: "*the candles flicker* Tell me — do you believe people can truly change?",
+      { text: "*candles flicker* Do you believe people can truly change?",
         choices: ["✅ Yes, with real effort anyone can", "⚖️ Yes, but only the core stuff stays", "🔒 Mostly no — nature wins in the end", "🌱 Only when life forces them to"] },
       { text: "*closes eyes* Last vision. What does your soul need most right now?",
         choices: ["🕊️ Rest and stillness", "🔥 Excitement and challenge", "🤝 Real connection with others", "🗺️ A clear direction forward"] }
@@ -602,28 +580,28 @@ const NPCS = {
   detective: {
     x: 128, y: 478, name: "Detective Sharp", emoji: "🕵️", color: "#34d399",
     questions: [
-      { text: "*closes notebook, squints* I've been watching you cross the plaza. Very telling. What's the very first thing you do every single morning?",
+      { text: "*closes notebook, squints* I've been watching you cross the plaza. What's the very first thing you do every single morning?",
         choices: ["📱 Immediately check my phone", "☕ Make coffee or tea, always", "🌞 Stretch, breathe, ease into it", "📋 Start planning the whole day"] },
       { text: "*taps pen thoughtfully* And when you're in a group, which role do you naturally slip into?",
         choices: ["🎯 The one who makes decisions", "🤝 The peacekeeper keeping it smooth", "💡 The one with the unexpected idea", "👁️ The quiet observer who misses nothing"] },
-      { text: "*leans forward* Interesting. Someone betrays your trust. What do you do?",
+      { text: "*leans forward* Someone betrays your trust. What do you do?",
         choices: ["🚪 Cut them off — trust is non-negotiable", "🗣️ Confront them directly and honestly", "⏳ Give them space, then decide", "🤔 Try to understand why first"] },
-      { text: "*scribbles notes* What's the one thing people consistently misunderstand about you?",
-        choices: ["😤 They think I'm cold — I just think carefully", "😊 They think I'm fine — I hide things well", "🧠 They think I'm simple — I'm more complex than I look", "🎭 They think I'm serious — I'm actually quite funny"] },
-      { text: "*closes the notebook* Final question. What does your ideal day look like?",
+      { text: "*scribbles notes* What do people consistently misunderstand about you?",
+        choices: ["😤 They think I'm cold — I just think carefully", "😊 They think I'm fine — I hide things well", "🧠 They underestimate how much I notice", "🎭 They think I'm serious — I'm actually funny"] },
+      { text: "*closes notebook* Final question. What does your ideal day look like?",
         choices: ["🚀 Packed — I want to feel productive", "⚖️ Balanced — some work, some play", "🛋️ Slow — I want to actually rest", "🎲 Spontaneous — let the day decide"] }
     ]
   },
   teen: {
     x: 542, y: 508, name: "Alex", emoji: "🧑‍🎤", color: "#ec4899",
     questions: [
-      { text: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr, I won't judge ngl",
+      { text: "omg HI!! no cap you look like you have genuine main character energy rn. so what's your absolute biggest ick? be so fr",
         choices: ["😤 Being fake online but 'nice' irl", "🕰️ Chronically late to everything", "🗣️ Never listening, just waiting to talk", "😒 Rude to people in service jobs"] },
       { text: "ok ok that tracks lol. what's your go-to when you have a completely free day with zero plans?",
         choices: ["🛋️ Fully decompress, nothing scheduled", "🌍 Spontaneous adventure, go somewhere new", "📱 Deep dive into whatever I'm obsessed with", "👯 Round up friends and make it a whole thing"] },
       { text: "slay. ok real talk — what's your love language? be honest lol",
         choices: ["🎁 Gift giving or receiving", "⏰ Quality time, fully present", "🤗 Physical touch — hugs etc", "🗣️ Words of affirmation all day"] },
-      { text: "omg interesting!! what's your villain era trigger? like what would actually make you snap? no judgment lol",
+      { text: "omg interesting!! what would actually trigger your villain era? no judgment lol",
         choices: ["😤 Being disrespected in front of others", "💔 Someone betraying someone I care about", "🔁 The same mistake happening over and over", "🚫 Being completely ignored or dismissed"] },
       { text: "ok last one bestie — hot take: what's actually overrated?",
         choices: ["🎉 Big social events and parties", "💼 Traditional 9-5 career paths", "📱 Being constantly online and reachable", "🏆 Chasing status and clout"] }
@@ -632,15 +610,15 @@ const NPCS = {
   robot: {
     x: 948, y: 472, name: "Unit-7", emoji: "🤖", color: "#06b6d4",
     questions: [
-      { text: "BEEP BOOP. NEW ENTITY DETECTED. Initiating personality scan... QUERY 1: What is your primary motivation when facing a difficult decision?",
+      { text: "BEEP BOOP. NEW ENTITY DETECTED. Initiating scan... QUERY 1: Primary motivation when facing a difficult decision?",
         choices: ["🔍 Pure logic and available data", "💖 What my gut feeling says", "👥 What's best for everyone", "🌱 What serves long-term growth"] },
       { text: "PROCESSING... QUERY 2: In your social group, what function do you most frequently perform?",
         choices: ["⚡ Generating energy and excitement", "🧩 Solving problems others can't crack", "🛡️ Protecting the group's emotional wellbeing", "🗺️ Planning and organizing everything"] },
       { text: "DATA LOGGED. QUERY 3: When you encounter a problem you cannot solve, your response is:",
         choices: ["🔄 Try every possible approach systematically", "🤝 Immediately seek outside help", "💤 Step away and return with fresh perspective", "😤 Push harder until something breaks"] },
-      { text: "ANALYZING PATTERNS... QUERY 4: Which best describes your relationship with rules?",
+      { text: "ANALYZING... QUERY 4: Which best describes your relationship with rules?",
         choices: ["✅ Follow them — they exist for good reasons", "⚖️ Follow the spirit, not always the letter", "🔍 Evaluate each rule on its own merits", "🚀 Rules are suggestions for people without vision"] },
-      { text: "SCAN NEARING COMPLETION. FINAL QUERY 5: What is your primary fear regarding your future?",
+      { text: "SCAN NEARING COMPLETION. FINAL QUERY 5: Primary fear regarding your future?",
         choices: ["📉 Failing to reach my potential", "😔 Ending up alone", "🔁 Getting stuck in a life that doesn't fit", "💨 Wasting the time I have"] }
     ]
   }
@@ -675,40 +653,34 @@ function getAudio() {
 function playTone(freq, dur, type = 'sine', vol = 0.08) {
   try {
     const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
     gain.gain.setValueAtTime(vol, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
   } catch(e) {}
 }
 const sfx = {
-  open:   () => { playTone(440, 0.07); setTimeout(() => playTone(554, 0.09), 55); },
-  choice: () => { playTone(523, 0.08, 'sine', 0.07); },
-  done:   () => { [523,659,784].forEach((f,i) => setTimeout(() => playTone(f,0.18,'sine',0.07), i*65)); },
-  reveal: () => { [392,523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,0.28,'sine',0.06), i*60)); },
+  open:   () => { playTone(392, 0.06, 'sine', 0.07); setTimeout(() => playTone(523, 0.1, 'sine', 0.06), 60); },
+  choice: () => { playTone(659, 0.08, 'sine', 0.07); },
+  done:   () => { [523,659,784].forEach((f,i) => setTimeout(() => playTone(f,0.15,'sine',0.06), i*70)); },
+  reveal: () => { [330,415,523,659,784,1047].forEach((f,i) => setTimeout(() => playTone(f,0.25,'sine',0.055), i*55)); },
+  orb:    () => { playTone(880, 0.12, 'sine', 0.06); },
 };
 
 // ═══════════════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════════════
 let player = { x: 530, y: 328 };
-let keys = {};
-let lastTs = 0;
-let nearNPC = null;
-let activeNPC = null;
-let chatBusy = false;
-let playerEmoji = '🧍';
+let keys = {}, lastTs = 0, nearNPC = null, activeNPC = null, chatBusy = false, playerEmoji = '🧍';
 let totalAnswered = 0;
-const histories = {};
-const npcAnswered = {};
+const histories = {}, npcAnswered = {};
 Object.keys(NPCS).forEach(id => { histories[id] = []; npcAnswered[id] = 0; });
-
 let joy = { active: false, id: null, bx: 0, by: 0, kx: 0, ky: 0 };
 let moveTarget = null;
 const npcWander = {};
+let resultData = null;
 
 // ═══════════════════════════════════════════════════════
 //  DOM
@@ -719,6 +691,7 @@ const playerEl    = document.getElementById('player');
 const dialogEl    = document.getElementById('dialog');
 const dialogAvt   = document.getElementById('dialog-avatar');
 const dialogName  = document.getElementById('dialog-npc-name');
+const dialogQdots = document.getElementById('dialog-qdots');
 const dialogMsgs  = document.getElementById('dialog-msgs');
 const dialogCount = document.getElementById('dialog-count');
 const choiceArea  = document.getElementById('choice-area');
@@ -730,8 +703,8 @@ const toastEl     = document.getElementById('toast');
 const talkMobile  = document.getElementById('talk-btn-mobile');
 const joyBase     = document.getElementById('joystick-base');
 const joyKnob     = document.getElementById('joystick-knob');
-const progressEl  = document.getElementById('progress');
-const moveTargetEl= null; // set after buildWorld
+const orbLabel    = document.getElementById('orb-label');
+let moveTargetEl  = null;
 
 // ═══════════════════════════════════════════════════════
 //  SCALE WORLD
@@ -739,11 +712,9 @@ const moveTargetEl= null; // set after buildWorld
 function scaleWorld() {
   const sx = window.innerWidth / W, sy = window.innerHeight / H;
   const s = Math.min(sx, sy);
-  const ox = (window.innerWidth - W * s) / 2;
-  const oy = (window.innerHeight - H * s) / 2;
   worldEl.style.transform = `scale(${s})`;
-  worldEl.style.left = ox + 'px';
-  worldEl.style.top  = oy + 'px';
+  worldEl.style.left = ((window.innerWidth - W * s) / 2) + 'px';
+  worldEl.style.top  = ((window.innerHeight - H * s) / 2) + 'px';
 }
 scaleWorld();
 window.addEventListener('resize', scaleWorld);
@@ -751,58 +722,54 @@ window.addEventListener('resize', scaleWorld);
 // ═══════════════════════════════════════════════════════
 //  BUILD WORLD
 // ═══════════════════════════════════════════════════════
-let moveTargetEl2 = null;
 function buildWorld() {
-  for (let i = 0; i < 80; i++) {
+  // Stars
+  for (let i = 0; i < 90; i++) {
     const s = document.createElement('div');
     s.className = 'decor decor-star'; s.textContent = '✦';
-    s.style.cssText = `left:${Math.random()*1080+10}px;top:${Math.random()*95+5}px;` +
-      `font-size:${(Math.random()*.35+.28).toFixed(2)}rem;` +
-      `opacity:${(Math.random()*.5+.15).toFixed(2)};` +
-      `animation-delay:${(Math.random()*3).toFixed(1)}s;`;
+    s.style.cssText = `left:${Math.random()*1060+20}px;top:${Math.random()*100+5}px;font-size:${(Math.random()*.4+.22).toFixed(2)}rem;opacity:${(Math.random()*.55+.12).toFixed(2)};animation-delay:${(Math.random()*3.5).toFixed(1)}s;`;
     worldEl.appendChild(s);
   }
-
+  // Fog strips
+  const fogPositions = [130, 220, 400, 520];
+  fogPositions.forEach((top, i) => {
+    const f = document.createElement('div');
+    f.className = 'fog';
+    f.style.cssText = `top:${top}px;animation-duration:${22+i*8}s;animation-delay:${-i*5}s;opacity:${0.6+i*0.1};`;
+    worldEl.appendChild(f);
+  });
+  // Decor
   DECOR_LIST.forEach(d => {
     const el = document.createElement('div');
     el.className = 'decor decor-' + d.cls;
     el.textContent = d.e; el.style.left = d.x + 'px'; el.style.top = d.y + 'px';
     worldEl.appendChild(el);
   });
-
+  // Move target
   const mt = document.createElement('div');
   mt.id = 'move-target'; worldEl.appendChild(mt);
-  moveTargetEl2 = mt;
-
+  moveTargetEl = mt;
+  // NPCs
   Object.entries(NPCS).forEach(([id, npc]) => {
     const el = document.createElement('div');
     el.className = 'npc'; el.id = 'npc-' + id;
-    el.style.cssText = `left:${npc.x-36}px;top:${npc.y-52}px;`;
+    el.style.cssText = `left:${npc.x-40}px;top:${npc.y-56}px;`;
     el.style.setProperty('--c', npc.color);
     el.innerHTML =
       `<div class="npc-aura"></div>` +
-      `<div class="npc-sprite-wrap">` +
-        `<div class="npc-sprite">${npc.emoji}</div>` +
-        `<div class="npc-badge">✓</div>` +
-      `</div>` +
+      `<div class="npc-sprite-wrap"><div class="npc-sprite">${npc.emoji}</div><div class="npc-badge">✓</div></div>` +
       `<div class="npc-name">${npc.name}</div>` +
       `<div class="npc-hint"><kbd>E</kbd> Talk</div>`;
-
     npcWander[id] = { ox: npc.x, oy: npc.y, tx: npc.x, ty: npc.y, timer: Math.random() * 2 };
-
     el.addEventListener('click', () => {
       if (activeNPC) return;
       const dx = player.x - npc.x, dy = player.y - npc.y;
-      if (Math.sqrt(dx*dx + dy*dy) < REACH * 2.5) {
-        openDialog(id);
-      } else {
+      if (Math.sqrt(dx*dx+dy*dy) < REACH * 2.5) { openDialog(id); }
+      else {
         moveTarget = { x: npc.x, y: npc.y };
-        const glide = setInterval(() => {
-          const dx2 = npc.x - player.x, dy2 = npc.y - player.y;
-          if (Math.sqrt(dx2*dx2 + dy2*dy2) < REACH * 0.85) {
-            clearInterval(glide); moveTarget = null;
-            if (!activeNPC) openDialog(id);
-          }
+        const g = setInterval(() => {
+          const dx2 = npc.x-player.x, dy2 = npc.y-player.y;
+          if (Math.sqrt(dx2*dx2+dy2*dy2) < REACH * 0.85) { clearInterval(g); moveTarget = null; if (!activeNPC) openDialog(id); }
         }, 80);
       }
     });
@@ -819,14 +786,13 @@ function updateNPCWander(dt) {
     if (id === activeNPC) return;
     w.timer -= dt;
     if (w.timer <= 0) {
-      w.tx = w.ox + (Math.random() - 0.5) * 36;
-      w.ty = w.oy + (Math.random() - 0.5) * 24;
+      w.tx = w.ox + (Math.random()-.5)*34; w.ty = w.oy + (Math.random()-.5)*22;
       w.timer = 2.5 + Math.random() * 3;
     }
     NPCS[id].x += (w.tx - NPCS[id].x) * 0.2 * dt;
     NPCS[id].y += (w.ty - NPCS[id].y) * 0.2 * dt;
     const el = document.getElementById('npc-' + id);
-    if (el) { el.style.left = (NPCS[id].x - 36) + 'px'; el.style.top = (NPCS[id].y - 52) + 'px'; }
+    if (el) { el.style.left = (NPCS[id].x-40)+'px'; el.style.top = (NPCS[id].y-56)+'px'; }
   });
 }
 
@@ -834,107 +800,74 @@ function updateNPCWander(dt) {
 //  GAME LOOP
 // ═══════════════════════════════════════════════════════
 function gameLoop(ts) {
-  const dt = Math.min((ts - lastTs) / 1000, 0.08);
-  lastTs = ts;
-
+  const dt = Math.min((ts - lastTs) / 1000, 0.08); lastTs = ts;
   if (!activeNPC) {
     let moved = false;
-    if (keys.up    || keys.w) { player.y -= SPEED * dt; moved = true; }
-    if (keys.down  || keys.s) { player.y += SPEED * dt; moved = true; }
-    if (keys.left  || keys.a) { player.x -= SPEED * dt; moved = true; }
-    if (keys.right || keys.d) { player.x += SPEED * dt; moved = true; }
-
+    if (keys.up    || keys.w) { player.y -= SPEED*dt; moved=true; }
+    if (keys.down  || keys.s) { player.y += SPEED*dt; moved=true; }
+    if (keys.left  || keys.a) { player.x -= SPEED*dt; moved=true; }
+    if (keys.right || keys.d) { player.x += SPEED*dt; moved=true; }
     if (joy.active) {
-      const mag = Math.sqrt(joy.kx * joy.kx + joy.ky * joy.ky);
-      if (mag > 8) {
-        const norm = mag / JOY_MAX;
-        player.x += (joy.kx / mag) * SPEED * norm * dt;
-        player.y += (joy.ky / mag) * SPEED * norm * dt;
-        moved = true;
-      }
+      const mag = Math.sqrt(joy.kx*joy.kx+joy.ky*joy.ky);
+      if (mag > 8) { const n=mag/JOY_MAX; player.x+=(joy.kx/mag)*SPEED*n*dt; player.y+=(joy.ky/mag)*SPEED*n*dt; moved=true; }
     }
-
     if (moveTarget && !moved) {
-      const dx = moveTarget.x - player.x, dy = moveTarget.y - player.y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > 5) { player.x += (dx/dist) * SPEED * dt; player.y += (dy/dist) * SPEED * dt; }
-      else moveTarget = null;
-    } else if (moved) {
-      moveTarget = null;
-    }
-
-    player.x = Math.max(20, Math.min(W - 20, player.x));
-    player.y = Math.max(20, Math.min(H - 24, player.y));
-    updatePlayer();
-    checkProximity();
+      const dx=moveTarget.x-player.x, dy=moveTarget.y-player.y, dist=Math.sqrt(dx*dx+dy*dy);
+      if (dist>5) { player.x+=(dx/dist)*SPEED*dt; player.y+=(dy/dist)*SPEED*dt; } else moveTarget=null;
+    } else if (moved) moveTarget=null;
+    player.x=Math.max(20,Math.min(W-20,player.x)); player.y=Math.max(20,Math.min(H-24,player.y));
+    updatePlayer(); checkProximity();
   }
-
   updateNPCWander(dt);
   requestAnimationFrame(gameLoop);
 }
-requestAnimationFrame(ts => { lastTs = ts; gameLoop(ts); });
-
-function updatePlayer() {
-  playerEl.style.left = (player.x - 21) + 'px';
-  playerEl.style.top  = (player.y - 21) + 'px';
-}
+requestAnimationFrame(ts => { lastTs=ts; gameLoop(ts); });
+function updatePlayer() { playerEl.style.left=(player.x-21)+'px'; playerEl.style.top=(player.y-21)+'px'; }
 updatePlayer();
 
 // ═══════════════════════════════════════════════════════
-//  PROXIMITY CHECK
+//  PROXIMITY
 // ═══════════════════════════════════════════════════════
 function checkProximity() {
   let found = null;
   for (const [id, npc] of Object.entries(NPCS)) {
-    const dx = player.x - npc.x, dy = player.y - npc.y;
-    if (Math.sqrt(dx*dx + dy*dy) < REACH) { found = id; break; }
+    const dx=player.x-npc.x, dy=player.y-npc.y;
+    if (Math.sqrt(dx*dx+dy*dy)<REACH) { found=id; break; }
   }
   if (found !== nearNPC) {
-    if (nearNPC) document.getElementById('npc-' + nearNPC)?.classList.remove('near');
+    if (nearNPC) document.getElementById('npc-'+nearNPC)?.classList.remove('near');
     nearNPC = found;
-    if (nearNPC) document.getElementById('npc-' + nearNPC)?.classList.add('near');
+    if (nearNPC) document.getElementById('npc-'+nearNPC)?.classList.add('near');
   }
   const isMobile = 'ontouchstart' in window;
   if (nearNPC && !activeNPC) {
-    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
-    if (npcHasMore) {
-      toastEl.innerHTML = isMobile
-        ? `Tap <strong>${NPCS[nearNPC].name}</strong> to talk`
-        : `<kbd>E</kbd> — Talk to <strong>${NPCS[nearNPC].name}</strong>`;
+    const hasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
+    if (hasMore) {
+      toastEl.innerHTML = isMobile ? `Tap <strong>${NPCS[nearNPC].name}</strong> to talk` : `<kbd>E</kbd> — Talk to <strong>${NPCS[nearNPC].name}</strong>`;
       toastEl.style.display = 'block';
-    } else {
-      toastEl.style.display = 'none';
-    }
-    talkMobile.style.display = (isMobile && npcHasMore) ? 'block' : 'none';
-  } else if (!activeNPC) {
-    toastEl.style.display = 'none';
-    talkMobile.style.display = 'none';
-  }
+    } else { toastEl.style.display='none'; }
+    talkMobile.style.display = (isMobile && hasMore) ? 'block' : 'none';
+  } else if (!activeNPC) { toastEl.style.display='none'; talkMobile.style.display='none'; }
 }
 
 // ═══════════════════════════════════════════════════════
 //  CLICK-TO-MOVE
 // ═══════════════════════════════════════════════════════
 function screenToWorld(cx, cy) {
-  const rect = worldEl.getBoundingClientRect();
-  const s = rect.width / W;
-  return { x: (cx - rect.left) / s, y: (cy - rect.top) / s };
+  const rect = worldEl.getBoundingClientRect(), s = rect.width/W;
+  return { x:(cx-rect.left)/s, y:(cy-rect.top)/s };
 }
-
 worldWrapEl.addEventListener('click', (e) => {
   if (activeNPC) return;
   if (e.target.closest('.npc') || dialogEl.contains(e.target)) return;
   const wc = screenToWorld(e.clientX, e.clientY);
-  if (wc.x < 0 || wc.x > W || wc.y < 0 || wc.y > H) return;
+  if (wc.x<0||wc.x>W||wc.y<0||wc.y>H) return;
   moveTarget = wc;
-  if (moveTargetEl2) {
-    moveTargetEl2.style.left = wc.x + 'px';
-    moveTargetEl2.style.top  = wc.y + 'px';
-    moveTargetEl2.style.display = 'block';
-    moveTargetEl2.style.animation = 'none';
-    void moveTargetEl2.offsetWidth;
-    moveTargetEl2.style.animation = '';
-    setTimeout(() => { if (moveTargetEl2) moveTargetEl2.style.display = 'none'; }, 600);
+  if (moveTargetEl) {
+    moveTargetEl.style.left=wc.x+'px'; moveTargetEl.style.top=wc.y+'px';
+    moveTargetEl.style.display='block';
+    moveTargetEl.style.animation='none'; void moveTargetEl.offsetWidth; moveTargetEl.style.animation='';
+    setTimeout(()=>{ if(moveTargetEl) moveTargetEl.style.display='none'; }, 650);
   }
 });
 
@@ -943,41 +876,92 @@ worldWrapEl.addEventListener('click', (e) => {
 // ═══════════════════════════════════════════════════════
 worldWrapEl.addEventListener('touchstart', (e) => {
   if (activeNPC) return;
-  if (e.target.closest('.npc') || dialogEl.contains(e.target)) return;
+  if (e.target.closest('.npc')||dialogEl.contains(e.target)) return;
   e.preventDefault();
-  const t = e.changedTouches[0];
-  joy.active = true; joy.id = t.identifier;
-  joy.bx = t.clientX; joy.by = t.clientY; joy.kx = 0; joy.ky = 0;
-  joyBase.style.left = (joy.bx - 60) + 'px';
-  joyBase.style.top  = (joy.by - 60) + 'px';
-  joyBase.style.display = 'block';
-  joyKnob.style.transform = 'translate(-50%, -50%)';
-}, { passive: false });
-
+  const t=e.changedTouches[0];
+  joy.active=true; joy.id=t.identifier; joy.bx=t.clientX; joy.by=t.clientY; joy.kx=0; joy.ky=0;
+  joyBase.style.left=(joy.bx-60)+'px'; joyBase.style.top=(joy.by-60)+'px'; joyBase.style.display='block';
+  joyKnob.style.transform='translate(-50%, -50%)';
+}, {passive:false});
 worldWrapEl.addEventListener('touchmove', (e) => {
-  if (!joy.active) return;
-  e.preventDefault();
+  if (!joy.active) return; e.preventDefault();
   for (const t of e.changedTouches) {
-    if (t.identifier !== joy.id) continue;
-    const dx = t.clientX - joy.bx, dy = t.clientY - joy.by;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    const cl = Math.min(dist, JOY_MAX), angle = Math.atan2(dy, dx);
-    joy.kx = Math.cos(angle) * cl; joy.ky = Math.sin(angle) * cl;
-    joyKnob.style.transform = `translate(calc(-50% + ${joy.kx}px), calc(-50% + ${joy.ky}px))`;
+    if (t.identifier!==joy.id) continue;
+    const dx=t.clientX-joy.bx, dy=t.clientY-joy.by;
+    const dist=Math.sqrt(dx*dx+dy*dy), cl=Math.min(dist,JOY_MAX), angle=Math.atan2(dy,dx);
+    joy.kx=Math.cos(angle)*cl; joy.ky=Math.sin(angle)*cl;
+    joyKnob.style.transform=`translate(calc(-50% + ${joy.kx}px), calc(-50% + ${joy.ky}px))`;
   }
-}, { passive: false });
-
+}, {passive:false});
 worldWrapEl.addEventListener('touchend', (e) => {
-  for (const t of e.changedTouches) {
-    if (t.identifier !== joy.id) continue;
-    joy.active = false; joy.kx = 0; joy.ky = 0;
-    joyBase.style.display = 'none';
+  for (const t of e.changedTouches) { if(t.identifier===joy.id){joy.active=false;joy.kx=0;joy.ky=0;joyBase.style.display='none';} }
+}, {passive:false});
+
+// ═══════════════════════════════════════════════════════
+//  ORBS & PARTICLES
+// ═══════════════════════════════════════════════════════
+function updateOrbs() {
+  for (let i = 0; i < 5; i++) {
+    const orb = document.getElementById('orb-' + i);
+    if (orb) { orb.classList.toggle('lit', i < totalAnswered); }
   }
-}, { passive: false });
+  orbLabel.textContent = `${totalAnswered} / 5`;
+}
+
+function spawnAnswerParticle(color) {
+  const el = document.createElement('div');
+  el.className = 'answer-particle';
+  el.textContent = '✦';
+  el.style.cssText = `left:50%;top:${window.innerHeight * 0.55}px;transform:translateX(-50%);color:${color || '#a78bfa'};`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1100);
+}
+
+function launchConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9999;';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const colors = ['#a78bfa','#6366f1','#f472b6','#60a5fa','#34d399','#fbbf24','#f87171'];
+  const particles = Array.from({length: 90}, () => ({
+    x: window.innerWidth/2, y: window.innerHeight*0.55,
+    vx: (Math.random()-0.5)*16, vy: -6-Math.random()*10,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    size: 5+Math.random()*8, rot: Math.random()*Math.PI*2,
+    rotV: (Math.random()-.5)*.25, life: 1
+  }));
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    let alive = false;
+    particles.forEach(p => {
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.35; p.rot+=p.rotV; p.life-=0.012;
+      if (p.life>0) {
+        alive=true;
+        ctx.save(); ctx.globalAlpha=Math.max(0,p.life);
+        ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.fillStyle=p.color; ctx.fillRect(-p.size/2,-p.size/4,p.size,p.size/2);
+        ctx.restore();
+      }
+    });
+    if (alive) requestAnimationFrame(draw); else canvas.remove();
+  }
+  draw();
+}
 
 // ═══════════════════════════════════════════════════════
 //  DIALOG
 // ═══════════════════════════════════════════════════════
+function updateQdots(npcId, currentQ) {
+  const npc = NPCS[npcId];
+  dialogQdots.innerHTML = '';
+  for (let i = 0; i < npc.questions.length; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'qdot' + (i < npcAnswered[npcId] ? ' answered' : i === currentQ ? ' current' : '');
+    dialogQdots.appendChild(dot);
+  }
+}
+
 function openDialog(npcId) {
   if (activeNPC) return;
   activeNPC = npcId;
@@ -990,113 +974,102 @@ function openDialog(npcId) {
   dialogEl.style.borderTopColor = npc.color;
   dialogAvt.textContent = npc.emoji;
   dialogAvt.style.borderColor = npc.color;
+  dialogAvt.style.boxShadow = `0 0 20px ${npc.color}55`;
   dialogName.textContent = npc.name;
   dialogName.style.color = npc.color;
   dialogCount.textContent = `${totalAnswered}/5`;
 
-  dialogEl.style.display = 'flex';
-  requestAnimationFrame(() => dialogEl.classList.add('open'));
-  dialogMsgs.innerHTML = '';
-  choiceGrid.innerHTML = '';
-  dialogInput.value = '';
-  choiceArea.classList.remove('hidden');
-  doneRow.classList.remove('visible');
+  dialogEl.style.display='flex';
+  requestAnimationFrame(()=>dialogEl.classList.add('open'));
+  document.body.classList.add('in-dialog');
+  dialogMsgs.innerHTML=''; choiceGrid.innerHTML=''; dialogInput.value='';
+  choiceArea.classList.remove('hidden'); doneRow.classList.remove('visible');
+
+  updateQdots(npcId, answered);
 
   if (histories[npcId].length === 0) {
     const q = npc.questions[0];
     addMsg('npc', q.text, true);
-    histories[npcId].push({ role: 'assistant', content: q.text });
-    if (!npcExhausted && !globalDone) {
-      setTimeout(() => showQuestion(npcId, 0), q.text.length * 16 + 200);
-    } else {
-      choiceArea.classList.add('hidden');
-    }
+    histories[npcId].push({ role:'assistant', content:q.text });
+    if (!npcExhausted && !globalDone) setTimeout(()=>showQuestion(npcId,0), q.text.length*14+200);
+    else choiceArea.classList.add('hidden');
   } else {
-    histories[npcId].forEach(m => addMsg(m.role === 'user' ? 'user' : 'npc', m.content));
+    histories[npcId].forEach(m=>addMsg(m.role==='user'?'user':'npc', m.content));
     if (npcExhausted || globalDone) {
       choiceArea.classList.add('hidden');
-      doneRow.textContent = npcExhausted
-        ? `✓ All done here — find more characters to keep going`
-        : `✓ 5/5 — personality reveal incoming!`;
+      doneRow.textContent = npcExhausted ? '✓ All done here — find more characters to keep going' : '✓ 5/5 complete — your personality is ready!';
       doneRow.classList.add('visible');
     } else {
       showQuestion(npcId, answered);
     }
   }
-
   sfx.open();
-  toastEl.style.display = 'none';
-  talkMobile.style.display = 'none';
+  toastEl.style.display='none'; talkMobile.style.display='none';
 }
 
 function showQuestion(npcId, questionIdx) {
-  const question = NPCS[npcId].questions[questionIdx];
-  choiceGrid.innerHTML = '';
-  choiceArea.classList.remove('hidden');
-  dialogInput.value = '';
-  question.choices.forEach((text, i) => {
+  const q = NPCS[npcId].questions[questionIdx];
+  choiceGrid.innerHTML=''; choiceArea.classList.remove('hidden'); dialogInput.value='';
+  updateQdots(npcId, questionIdx);
+  q.choices.forEach((text, i) => {
     const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.textContent = text;
-    btn.style.animationDelay = (i * 0.05) + 's';
-    btn.addEventListener('click', () => sendAnswer(npcId, text));
+    btn.className='choice-btn'; btn.textContent=text;
+    btn.style.animationDelay=(i*0.05)+'s';
+    btn.addEventListener('click', ()=>sendAnswer(npcId, text));
     choiceGrid.appendChild(btn);
   });
-  if (!('ontouchstart' in window)) setTimeout(() => dialogInput.focus(), 50);
+  if (!('ontouchstart' in window)) setTimeout(()=>dialogInput.focus(), 50);
 }
 
 async function sendAnswer(npcId, answerText) {
-  if (chatBusy || activeNPC !== npcId) return;
+  if (chatBusy || activeNPC!==npcId) return;
   answerText = answerText.trim();
   if (!answerText) return;
-  chatBusy = true;
-  sfx.choice();
+  chatBusy=true; sfx.choice();
 
-  choiceArea.classList.add('hidden');
-  dialogInput.value = '';
-  addMsg('user', answerText);
-  showLoader();
+  choiceArea.classList.add('hidden'); dialogInput.value='';
+  addMsg('user', answerText); showLoader();
+  spawnAnswerParticle(NPCS[npcId].color);
 
   try {
     const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ npcId, history: histories[npcId], userMessage: answerText })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ npcId, history:histories[npcId], userMessage:answerText })
     });
     document.getElementById('msg-loader')?.remove();
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
+    if (!res.ok) throw new Error(data.error||'API error '+res.status);
 
     addMsg('npc', data.response, true);
-    histories[npcId].push({ role: 'user', content: answerText });
-    histories[npcId].push({ role: 'assistant', content: data.response });
+    histories[npcId].push({role:'user',content:answerText});
+    histories[npcId].push({role:'assistant',content:data.response});
 
     npcAnswered[npcId]++;
     totalAnswered++;
 
-    if (npcAnswered[npcId] >= NPCS[npcId].questions.length) {
-      document.getElementById('npc-' + npcId)?.classList.add('done');
+    if (npcAnswered[npcId]>=NPCS[npcId].questions.length) {
+      document.getElementById('npc-'+npcId)?.classList.add('done');
     }
-    dialogCount.textContent = `${totalAnswered}/5`;
-    progressEl.textContent = `${totalAnswered} / 5`;
-    sfx.done();
+    dialogCount.textContent=`${totalAnswered}/5`;
+    updateOrbs(); sfx.done(); sfx.orb();
 
-    const npc = NPCS[npcId];
-    const hasMore = npcAnswered[npcId] < npc.questions.length;
+    const hasMore = npcAnswered[npcId] < NPCS[npcId].questions.length;
     const remaining = 5 - totalAnswered;
-    const typeDelay = data.response.length * 16 + 450;
+    const typeDelay = Math.min(data.response.length*14+400, 2500);
 
-    setTimeout(() => {
-      if (remaining <= 0) {
+    setTimeout(()=>{
+      if (remaining<=0) {
+        launchConfetti();
         closeDialog();
-        setTimeout(() => analyzePersonality(), 400);
+        setTimeout(()=>analyzePersonality(), 600);
       } else if (hasMore) {
-        const nextQ = npc.questions[npcAnswered[npcId]];
+        const nextQ = NPCS[npcId].questions[npcAnswered[npcId]];
         addMsg('npc', nextQ.text, true);
-        histories[npcId].push({ role: 'assistant', content: nextQ.text });
-        setTimeout(() => showQuestion(npcId, npcAnswered[npcId]), nextQ.text.length * 16 + 200);
+        histories[npcId].push({role:'assistant',content:nextQ.text});
+        updateQdots(npcId, npcAnswered[npcId]);
+        setTimeout(()=>showQuestion(npcId, npcAnswered[npcId]), nextQ.text.length*14+200);
       } else {
-        doneRow.textContent = `✓ Done here — ${remaining} more answer${remaining !== 1 ? 's' : ''} to go, visit other characters!`;
+        doneRow.textContent=`✓ Done here — ${remaining} more answer${remaining!==1?'s':''} to go!`;
         doneRow.classList.add('visible');
       }
     }, typeDelay);
@@ -1104,150 +1077,170 @@ async function sendAnswer(npcId, answerText) {
   } catch (err) {
     document.getElementById('msg-loader')?.remove();
     addMsg('npc', '⚠️ Something went wrong — ' + err.message);
-    choiceArea.classList.remove('hidden');
-    showQuestion(npcId, npcAnswered[npcId]);
+    choiceArea.classList.remove('hidden'); showQuestion(npcId, npcAnswered[npcId]);
   }
-  chatBusy = false;
+  chatBusy=false;
 }
 
 function closeDialog() {
   dialogEl.classList.remove('open');
-  setTimeout(() => { dialogEl.style.display = 'none'; }, 320);
-  activeNPC = null;
-  keys = {};
+  setTimeout(()=>{ dialogEl.style.display='none'; }, 350);
+  document.body.classList.remove('in-dialog');
+  activeNPC=null; keys={};
 }
 
-dialogInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAnswer(activeNPC, dialogInput.value); }
-});
-dialogSend.addEventListener('click', () => sendAnswer(activeNPC, dialogInput.value));
-
-function addMsg(role, text, typewrite = false) {
+function addMsg(role, text, typewrite=false) {
   const div = document.createElement('div');
-  div.className = 'msg msg-' + role;
+  div.className='msg msg-'+role;
   dialogMsgs.appendChild(div);
-  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
-
-  if (typewrite && role === 'npc') {
+  dialogMsgs.scrollTop=dialogMsgs.scrollHeight;
+  if (typewrite && role==='npc') {
     div.classList.add('typing');
-    let i = 0;
-    const rate = Math.max(12, Math.min(22, Math.floor(6000 / text.length)));
-    const timer = setInterval(() => {
-      div.textContent = text.slice(0, ++i);
-      dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
-      if (i >= text.length) { clearInterval(timer); div.classList.remove('typing'); }
-    }, rate);
-  } else {
-    div.textContent = text;
-  }
+    let i=0;
+    const rate=Math.max(10,Math.min(20,Math.floor(5000/text.length)));
+    const timer=setInterval(()=>{
+      div.textContent=text.slice(0,++i);
+      dialogMsgs.scrollTop=dialogMsgs.scrollHeight;
+      if(i>=text.length){clearInterval(timer);div.classList.remove('typing');}
+    },rate);
+  } else { div.textContent=text; }
   return div;
 }
 
 function showLoader() {
-  const div = document.createElement('div');
-  div.className = 'msg-loading'; div.id = 'msg-loader';
-  div.innerHTML = '<span></span><span></span><span></span>';
-  dialogMsgs.appendChild(div);
-  dialogMsgs.scrollTop = dialogMsgs.scrollHeight;
+  const div=document.createElement('div');
+  div.className='msg-loading'; div.id='msg-loader';
+  div.innerHTML='<span></span><span></span><span></span>';
+  dialogMsgs.appendChild(div); dialogMsgs.scrollTop=dialogMsgs.scrollHeight;
 }
+
+dialogInput.addEventListener('keydown', e=>{
+  if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAnswer(activeNPC,dialogInput.value);}
+});
+dialogSend.addEventListener('click', ()=>sendAnswer(activeNPC, dialogInput.value));
 
 // ═══════════════════════════════════════════════════════
 //  PERSONALITY ANALYSIS
 // ═══════════════════════════════════════════════════════
 async function analyzePersonality() {
-  const modal    = document.getElementById('profile-modal');
-  const loading  = document.getElementById('profile-loading');
-  const content  = document.getElementById('profile-content');
+  const modal=document.getElementById('profile-modal');
+  const loading=document.getElementById('profile-loading');
+  const content=document.getElementById('profile-content');
 
   modal.classList.add('open');
-  loading.style.display = 'block';
-  content.style.display = 'none';
+  loading.style.display='block'; content.style.display='none';
   sfx.reveal();
 
-  const responses = [];
-  for (const [npcId, history] of Object.entries(histories)) {
-    for (let i = 0; i < history.length - 1; i++) {
-      if (history[i].role === 'assistant' && history[i+1].role === 'user') {
-        responses.push({ text: history[i].content, choice: history[i+1].content });
+  const responses=[];
+  for (const [npcId,history] of Object.entries(histories)) {
+    for (let i=0;i<history.length-1;i++) {
+      if (history[i].role==='assistant'&&history[i+1].role==='user') {
+        responses.push({text:history[i].content, choice:history[i+1].content});
       }
     }
   }
 
   try {
     const res = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ responses })
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({responses})
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'API error ' + res.status);
+    if (!res.ok) throw new Error(data.error||'API error '+res.status);
 
-    loading.style.display = 'none';
-    content.style.display = 'block';
+    const p = data.profile;
+    resultData = p;
 
-    const summaryEl = document.getElementById('profile-summary');
-    summaryEl.innerHTML = '';
-    const words = data.summary.split(' ');
-    words.forEach((word, i) => {
-      const span = document.createElement('span');
-      span.className = 'word';
-      span.textContent = (i === 0 ? '' : ' ') + word;
-      span.style.animationDelay = (i * 0.04) + 's';
-      summaryEl.appendChild(span);
+    document.getElementById('archetype-emoji').textContent = p.archetypeEmoji;
+    document.getElementById('archetype-name').textContent  = p.archetype;
+
+    const traitsEl = document.getElementById('archetype-traits');
+    traitsEl.innerHTML = '';
+    (p.traits||[]).forEach(t=>{
+      const span=document.createElement('span'); span.className='trait-badge'; span.textContent=t;
+      traitsEl.appendChild(span);
     });
 
+    document.getElementById('r-description').textContent = p.description;
+    document.getElementById('r-superpower').textContent  = p.superpower;
+    document.getElementById('r-weakness').textContent    = p.weakness;
+    document.getElementById('r-role').textContent        = p.groupRole;
+    document.getElementById('r-match').textContent       = p.famousMatch;
+    document.getElementById('result-quote').textContent  = p.quote ? `"${p.quote}"` : '';
+
+    // Staggered animation
+    const sections = content.querySelectorAll('.result-section, .result-2col, #result-quote, #result-actions');
+    sections.forEach((s,i)=>{ s.style.animationDelay=(0.1+i*0.1)+'s'; });
+
+    loading.style.display='none';
+    content.style.display='block';
   } catch (err) {
-    loading.innerHTML = `<span class="spin">⚠️</span>${err.message}`;
+    loading.innerHTML=`<span class="spin">⚠️</span>${err.message}`;
   }
 }
 
-function closeProfile() {
-  document.getElementById('profile-modal').classList.remove('open');
+function closeProfile() { document.getElementById('profile-modal').classList.remove('open'); }
+
+function copyResult() {
+  if (!resultData) return;
+  const p = resultData;
+  const text = [
+    `🎭 My Personality: ${p.archetype} ${p.archetypeEmoji}`,
+    `Traits: ${(p.traits||[]).join(', ')}`,
+    '', p.description, '',
+    `⚡ Superpower: ${p.superpower}`,
+    `🌑 Blind Spot: ${p.weakness}`,
+    `👥 In My Group: ${p.groupRole}`,
+    `🎭 My Energy: ${p.famousMatch}`,
+    p.quote ? `\n"${p.quote}"` : '',
+    '\nDiscover yours at Personality Playground!'
+  ].filter(l=>l!==undefined).join('\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.getElementById('copy-btn');
+    btn.textContent='✓ Copied!'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='📋 Copy Result'; btn.classList.remove('copied'); }, 2000);
+  }).catch(()=>{});
 }
 
-function restartGame() {
-  location.reload();
-}
+function restartGame() { location.reload(); }
 
 // ═══════════════════════════════════════════════════════
 //  KEYBOARD
 // ═══════════════════════════════════════════════════════
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && activeNPC) { closeDialog(); return; }
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+document.addEventListener('keydown', e=>{
+  if (e.key==='Escape'&&activeNPC){closeDialog();return;}
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA') return;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
-  if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = true;
-  if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = true;
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = true;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
-  if ((e.key === 'e' || e.key === 'E') && nearNPC && !activeNPC) {
-    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
-    if (npcHasMore) openDialog(nearNPC);
+  if (e.key==='ArrowUp'   ||e.key==='w') keys.up=true;
+  if (e.key==='ArrowDown' ||e.key==='s') keys.down=true;
+  if (e.key==='ArrowLeft' ||e.key==='a') keys.left=true;
+  if (e.key==='ArrowRight'||e.key==='d') keys.right=true;
+  if ((e.key==='e'||e.key==='E')&&nearNPC&&!activeNPC) {
+    const hasMore=npcAnswered[nearNPC]<NPCS[nearNPC].questions.length&&totalAnswered<5;
+    if (hasMore) openDialog(nearNPC);
   }
 });
-document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowUp'    || e.key === 'w') keys.up    = false;
-  if (e.key === 'ArrowDown'  || e.key === 's') keys.down  = false;
-  if (e.key === 'ArrowLeft'  || e.key === 'a') keys.left  = false;
-  if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+document.addEventListener('keyup', e=>{
+  if (e.key==='ArrowUp'   ||e.key==='w') keys.up=false;
+  if (e.key==='ArrowDown' ||e.key==='s') keys.down=false;
+  if (e.key==='ArrowLeft' ||e.key==='a') keys.left=false;
+  if (e.key==='ArrowRight'||e.key==='d') keys.right=false;
 });
-
 function mobileInteract() {
-  if (nearNPC && !activeNPC) {
-    const npcHasMore = npcAnswered[nearNPC] < NPCS[nearNPC].questions.length && totalAnswered < 5;
-    if (npcHasMore) openDialog(nearNPC);
+  if (nearNPC&&!activeNPC) {
+    const hasMore=npcAnswered[nearNPC]<NPCS[nearNPC].questions.length&&totalAnswered<5;
+    if (hasMore) openDialog(nearNPC);
   }
 }
 
 // ═══════════════════════════════════════════════════════
 //  AVATAR SELECTION
 // ═══════════════════════════════════════════════════════
-document.querySelectorAll('.av-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.av-btn').forEach(b => b.classList.remove('selected'));
+document.querySelectorAll('.av-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.av-btn').forEach(b=>b.classList.remove('selected'));
     btn.classList.add('selected');
-    playerEmoji = btn.dataset.emoji;
-    playerEl.textContent = playerEmoji;
+    playerEmoji=btn.dataset.emoji; playerEl.textContent=playerEmoji;
   });
 });
 
@@ -1255,16 +1248,12 @@ document.querySelectorAll('.av-btn').forEach(btn => {
 //  INTRO
 // ═══════════════════════════════════════════════════════
 function startGame() {
-  const intro = document.getElementById('intro');
-  intro.style.opacity = '0';
-  intro.style.transition = 'opacity 0.4s';
-  setTimeout(() => intro.remove(), 400);
+  const intro=document.getElementById('intro');
+  intro.style.opacity='0'; intro.style.transition='opacity 0.5s';
+  setTimeout(()=>intro.remove(),500);
 }
-document.addEventListener('keydown', function onKey(e) {
-  if ((e.key === 'Enter' || e.key === ' ') && document.getElementById('intro')) {
-    startGame();
-    document.removeEventListener('keydown', onKey);
-  }
+document.addEventListener('keydown',function onKey(e){
+  if((e.key==='Enter'||e.key===' ')&&document.getElementById('intro')){startGame();document.removeEventListener('keydown',onKey);}
 });
 </script>
 </body>
